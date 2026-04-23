@@ -63,12 +63,20 @@ button{
 .hidden{
   display:none;
 }
+
+.msg{
+  margin-top:10px;
+  font-size:14px;
+  color:#333;
+}
 </style>
 </head>
 
 <body>
 
 <div class="container">
+
+<div id="msg" class="msg"></div>
 
 <!-- LOGIN -->
 <div id="loginBox">
@@ -109,59 +117,70 @@ from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, setDoc }
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// 🔥 TEU FIREBASE (já correto)
+// 🔥 CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyDYynjujS00ewRLDRKUJ2sVNv6FJFl5G9s",
   authDomain: "vertex-megas.firebaseapp.com",
   projectId: "vertex-megas",
   storageBucket: "vertex-megas.appspot.com",
   messagingSenderId: "639387672439",
-  appId: "1:639387672439:web:28c1be..."
+  appId: "1:639387672439:web:28c1be3827998c4f41cb72"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// mensagem na tela
+function mostrarMsg(texto, cor="black"){
+  const msg = document.getElementById("msg");
+  msg.innerText = texto;
+  msg.style.color = cor;
+}
+
 // alternar telas
 window.mostrarCadastro = function(){
   document.getElementById("loginBox").classList.add("hidden");
   document.getElementById("cadastroBox").classList.remove("hidden");
+  mostrarMsg("");
 }
 
 window.mostrarLogin = function(){
   document.getElementById("cadastroBox").classList.add("hidden");
   document.getElementById("loginBox").classList.remove("hidden");
+  mostrarMsg("");
 }
 
-// criar conta
+// 🔥 CRIAR CONTA
 window.criarConta = async function(){
   let email = document.getElementById("cadUser").value;
   let senha = document.getElementById("cadPass").value;
 
   if(!email || !senha){
-    alert("Preencha tudo!");
+    mostrarMsg("Preencha todos campos", "red");
     return;
   }
 
   try{
     const userCred = await createUserWithEmailAndPassword(auth,email,senha);
 
-    // salvar no banco
-    await setDoc(doc(db,"usuarios",userCred.user.uid),{
+    // 🔥 EMAIL COMO ID
+    const emailId = email.replace(/\./g, "_");
+
+    await setDoc(doc(db,"usuarios", emailId),{
       email: email,
       saldo: 0
     });
 
-    alert("Conta criada!");
+    mostrarMsg("Conta criada com sucesso!", "green");
     mostrarLogin();
 
   }catch(e){
-    alert(e.message);
+    mostrarMsg(e.message, "red");
   }
 }
 
-// login
+// 🔥 LOGIN
 window.login = async function(){
   let email = document.getElementById("loginUser").value;
   let senha = document.getElementById("loginPass").value;
@@ -170,7 +189,7 @@ window.login = async function(){
     await signInWithEmailAndPassword(auth,email,senha);
     window.location.href = "home.html";
   }catch(e){
-    alert(e.message);
+    mostrarMsg(e.message, "red");
   }
 }
 
