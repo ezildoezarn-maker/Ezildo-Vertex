@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Perfil</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background: linear-gradient(135deg, #fdfbfb, #ebedee);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* TOPO */
+.topo {
+  width: 100%;
+  background: linear-gradient(135deg, #ff7e5f, #ff9966);
+  color: white;
+  padding: 35px 20px 60px;
+  text-align: center;
+  border-bottom-left-radius: 40px;
+  border-bottom-right-radius: 40px;
+  font-size: 22px;
+  font-weight: bold;
+}
+
+/* FOTO */
+.foto {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: white;
+  margin-top: -50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
+
+/* CARD */
+.card {
+  width: 85%;
+  max-width: 350px;
+  margin-top: 20px;
+  background: white;
+  padding: 25px;
+  border-radius: 25px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.nome {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.email {
+  color: #777;
+  font-size: 14px;
+}
+
+/* INPUT */
+input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  margin-top: 10px;
+}
+
+/* SALDO */
+.saldo {
+  margin-top: 15px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #f1f1f1;
+  font-weight: bold;
+}
+
+/* BOTÕES */
+.btn {
+  width: 100%;
+  padding: 13px;
+  border: none;
+  border-radius: 15px;
+  font-weight: bold;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+.salvar {
+  background: linear-gradient(45deg, #36d1dc, #5b86e5);
+  color: white;
+}
+
+.sair {
+  background: linear-gradient(45deg, #ff416c, #ff4b2b);
+  color: white;
+}
+
+.voltar {
+  background: #eee;
+}
+</style>
+</head>
+
+<body>
+
+<div class="topo">👤 Meu Perfil</div>
+
+<div class="foto" id="foto">👤</div>
+
+<div class="card">
+  <div class="nome" id="nome">Carregando...</div>
+  <div class="email" id="email"></div>
+
+  <input type="text" id="novoNome" placeholder="Alterar nome">
+
+  <div class="saldo">💰 Saldo: 0 MT</div>
+
+  <button class="btn salvar" onclick="salvarNome()">💾 Salvar Nome</button>
+  <button class="btn sair" onclick="sair()">🚪 Sair</button>
+  <button class="btn voltar" onclick="voltar()">⬅ Voltar</button>
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDYynjujS00ewRLDRKUJ2sVNv6FJFl5G9s",
+  authDomain: "vertex-megas.firebaseapp.com",
+  projectId: "vertex-megas",
+  storageBucket: "vertex-megas.appspot.com",
+  messagingSenderId: "639387672439",
+  appId: "1:639387672439:web:28c1be3827998c4f41cb72"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let uid = null;
+
+// CARREGAR USUÁRIO
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    uid = user.uid;
+    document.getElementById("email").innerText = user.email;
+
+    const ref = doc(db, "users", uid);
+    const snap = await getDoc(ref);
+
+    if (snap.exists()) {
+      document.getElementById("nome").innerText = snap.data().nome;
+      document.getElementById("foto").innerText = snap.data().nome.charAt(0);
+    } else {
+      let nome = user.email.split("@")[0];
+      document.getElementById("nome").innerText = nome;
+      document.getElementById("foto").innerText = nome.charAt(0);
+    }
+
+  } else {
+    window.location.href = "index.html";
+  }
+});
+
+// SALVAR NOME
+window.salvarNome = async function() {
+  const novo = document.getElementById("novoNome").value;
+
+  if (!novo) return alert("Digite um nome");
+
+  await setDoc(doc(db, "users", uid), {
+    nome: novo
+  });
+
+  document.getElementById("nome").innerText = novo;
+  document.getElementById("foto").innerText = novo.charAt(0);
+  document.getElementById("novoNome").value = "";
+
+  alert("Nome salvo!");
+}
+
+// SAIR
+window.sair = function() {
+  signOut(auth).then(() => {
+    window.location.href = "index.html";
+  });
+}
+
+// VOLTAR
+window.voltar = function() {
+  window.location.href = "home.html";
+}
+
+</script>
+
+</body>
+  </html>
