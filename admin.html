@@ -21,6 +21,15 @@ body{
   font-size:20px;
 }
 
+/* loading */
+.loading{
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  font-size:18px;
+}
+
 /* mensagem */
 .msg{
   position:fixed;
@@ -37,9 +46,7 @@ body{
 .erro{background:#ef4444;}
 
 /* box */
-.box{
-  padding:15px;
-}
+.box{ padding:15px; }
 
 input{
   width:100%;
@@ -63,7 +70,6 @@ input{
 .admin{background:#6366f1;}
 .remove{background:#ef4444;}
 
-/* info user */
 .userBox{
   background:#1e293b;
   margin-top:10px;
@@ -71,10 +77,7 @@ input{
   border-radius:12px;
 }
 
-/* lista */
-.lista{
-  padding:15px;
-}
+.lista{ padding:15px; }
 
 .card{
   background:#1e293b;
@@ -87,24 +90,24 @@ input{
 
 <body>
 
-<div class="topo">⚙️ Admin Pro</div>
-<div id="msg" class="msg"></div>
+<div id="loading" class="loading">⏳ Carregando...</div>
 
-<div id="conteudo" style="display:none;">
+<div id="app" style="display:none;">
 
-<!-- 🔍 BUSCAR -->
-<div class="box">
-  <h3>🔎 Buscar Usuário</h3>
+  <div class="topo">⚙️ Admin Pro</div>
+  <div id="msg" class="msg"></div>
 
-  <input id="emailUser" placeholder="Email">
+  <!-- 🔎 BUSCAR -->
+  <div class="box">
+    <h3>🔎 Buscar Usuário</h3>
+    <input id="emailUser" placeholder="Email">
+    <button class="btn add" onclick="buscarUser()">Buscar</button>
 
-  <button class="btn add" onclick="buscarUser()">Buscar</button>
+    <div id="userInfo" class="userBox" style="display:none;"></div>
+  </div>
 
-  <div id="userInfo" class="userBox" style="display:none;"></div>
-</div>
-
-<!-- 📋 LISTA -->
-<div class="lista" id="listaUsers"></div>
+  <!-- 📋 LISTA -->
+  <div class="lista" id="listaUsers"></div>
 
 </div>
 
@@ -115,7 +118,7 @@ import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/
 import { getFirestore, collection, getDocs, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDY...",
+  apiKey: "AIzaSyDYynjujS00ewRLDRKUJ2sVNv6FJFl5G9s",
   authDomain: "vertex-megas.firebaseapp.com",
   projectId: "vertex-megas"
 };
@@ -124,6 +127,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// 🔔 mensagem
 function msg(t,c){
   const m=document.getElementById("msg");
   m.innerText=t;
@@ -132,23 +136,37 @@ function msg(t,c){
   setTimeout(()=>m.style.display="none",3000);
 }
 
-// 🔐 PROTEÇÃO
+// 🔐 VERIFICA LOGIN + ADMIN (BLINDADO)
 onAuthStateChanged(auth, async (user)=>{
+
+  // 🔥 espera sempre terminar carregamento
+  if(user === undefined) return;
+
   if(!user){
-    window.location.href="index.html";
+    document.getElementById("loading").innerHTML="🔒 Faça login primeiro";
     return;
   }
 
-  const id=user.email.replace(/\./g,"_");
-  const snap=await getDoc(doc(db,"usuarios",id));
+  try{
+    const id=user.email.replace(/\./g,"_");
+    const snap=await getDoc(doc(db,"usuarios",id));
 
-  if(!snap.exists() || !snap.data().isAdmin){
-    document.body.innerHTML="❌ Acesso negado";
-    return;
+    if(!snap.exists() || !snap.data().isAdmin){
+      document.getElementById("loading").innerHTML="❌ Acesso negado";
+      return;
+    }
+
+    // ✅ liberar painel
+    document.getElementById("loading").style.display="none";
+    document.getElementById("app").style.display="block";
+
+    carregarLista();
+
+  }catch(e){
+    document.getElementById("loading").innerHTML="Erro ao carregar";
+    console.error(e);
   }
 
-  document.getElementById("conteudo").style.display="block";
-  carregarLista();
 });
 
 // 🔎 BUSCAR
@@ -186,7 +204,7 @@ window.buscarUser = async function(){
 
 // 💰 SALDO
 window.addSaldo = async function(email){
-  const valor=prompt("Valor:");
+  const valor = prompt("Valor:");
 
   if(!valor) return;
 
@@ -210,7 +228,7 @@ window.setAdmin = async function(email,valor){
     isAdmin: valor
   });
 
-  msg("Atualizado","sucesso");
+  msg("Permissão atualizada","sucesso");
   buscarUser();
 }
 
