@@ -138,20 +138,21 @@ const firebaseConfig = {
   apiKey: "AIzaSyDYynjujS00ewRLDRKUJ2sVNv6FJFl5G9s",
   authDomain: "vertex-megas.firebaseapp.com",
   projectId: "vertex-megas",
-  storageBucket: "vertex-megas.appspot.com",
+  storageBucket: "vertex-megas.firebasestorage.app",
   messagingSenderId: "639387672439",
   appId: "1:639387672439:web:28c1be3827998c4f41cb72"
 };
-  
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
 let uid = null;
 
-// CARREGAR USUÁRIO
+// 🔥 CARREGAR USUÁRIO
 onAuthStateChanged(auth, async (user) => {
   if (user) {
+
     uid = user.uid;
     document.getElementById("email").innerText = user.email;
 
@@ -159,31 +160,23 @@ onAuthStateChanged(auth, async (user) => {
     const snap = await getDoc(ref);
 
     if (snap.exists()) {
-  const data = snap.data();
+      const data = snap.data();
 
-  document.getElementById("nome").innerText = data.nome || "Sem nome";
-  document.getElementById("foto").innerText = (data.nome || "U").charAt(0);
+      document.getElementById("nome").innerText = data.nome || "Sem nome";
+      document.getElementById("foto").innerText = (data.nome || "U").charAt(0);
+      document.getElementById("saldo").innerText = data.saldo || 0;
 
-  // 🔥 AQUI MOSTRA O SALDO REAL
-  document.getElementById("saldo").innerText = data.saldo || 0;
-
-} else {
-  let nome = user.email.split("@")[0];
-
-  document.getElementById("nome").innerText = nome;
-  document.getElementById("foto").innerText = nome.charAt(0);
-
-  // 🔥 cria usuário com saldo 0
-  await setDoc(doc(db, "users", uid), {
-    nome: nome,
-    saldo: 0
-  });
-
-  document.getElementById("saldo").innerText = 0;
-} else {
+    } else {
       let nome = user.email.split("@")[0];
+
+      await setDoc(ref, {
+        nome: nome,
+        saldo: 0
+      });
+
       document.getElementById("nome").innerText = nome;
       document.getElementById("foto").innerText = nome.charAt(0);
+      document.getElementById("saldo").innerText = 0;
     }
 
   } else {
@@ -191,7 +184,7 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-// SALVAR NOME
+// 🔥 SALVAR NOME
 window.salvarNome = async function() {
   const novo = document.getElementById("novoNome").value;
 
@@ -199,7 +192,7 @@ window.salvarNome = async function() {
 
   await setDoc(doc(db, "users", uid), {
     nome: novo
-  });
+  }, { merge: true });
 
   document.getElementById("nome").innerText = novo;
   document.getElementById("foto").innerText = novo.charAt(0);
@@ -208,14 +201,14 @@ window.salvarNome = async function() {
   alert("Nome salvo!");
 }
 
-// SAIR
+// 🔥 SAIR
 window.sair = function() {
   signOut(auth).then(() => {
     window.location.href = "index.html";
   });
 }
 
-// VOLTAR
+// 🔥 VOLTAR
 window.voltar = function() {
   window.location.href = "home.html";
 }
