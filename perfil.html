@@ -76,8 +76,8 @@ input {
 /* SALDO */
 .saldo {
   margin-top: 15px;
-  padding: 10px;
-  border-radius: 10px;
+  padding: 12px;
+  border-radius: 12px;
   background: #f1f1f1;
   font-weight: bold;
 }
@@ -134,11 +134,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+// 🔥 COLOCA TUA API KEY AQUI
 const firebaseConfig = {
   apiKey: "AIzaSyDYynjujS00ewRLDRKUJ2sVNv6FJFl5G9s",
   authDomain: "vertex-megas.firebaseapp.com",
   projectId: "vertex-megas",
-  storageBucket: "vertex-megas.firebasestorage.app",
+  storageBucket: "vertex-megas.appspot.com",
   messagingSenderId: "639387672439",
   appId: "1:639387672439:web:28c1be3827998c4f41cb72"
 };
@@ -149,33 +150,40 @@ const db = getFirestore(app);
 
 let uid = null;
 
-// 🔥 CARREGAR USUÁRIO
-onAuthStateChanged(auth, async (user) => {
+// 🔥 CARREGAR USUÁRIO EM TEMPO REAL
+onAuthStateChanged(auth, (user) => {
   if (user) {
 
     uid = user.uid;
     document.getElementById("email").innerText = user.email;
 
     const ref = doc(db, "users", uid);
-    onSnapshot(ref, (docSnap) => {
-  if (docSnap.exists()) {
-    const data = docSnap.data();
 
-    document.getElementById("nome").innerText = data.nome || "Sem nome";
-    document.getElementById("foto").innerText = (data.nome || "U").charAt(0);
-    document.getElementById("saldo").innerText = data.saldo || 0;
+    // 🔥 TEMPO REAL (ATUALIZA AUTOMÁTICO)
+    onSnapshot(ref, async (docSnap) => {
 
-  } else {
-    let nome = user.email.split("@")[0];
+      if (docSnap.exists()) {
+        const data = docSnap.data();
 
-    setDoc(ref, {
-      nome: nome,
-      saldo: 0
+        document.getElementById("nome").innerText = data.nome || "Sem nome";
+        document.getElementById("foto").innerText = (data.nome || "U").charAt(0);
+        document.getElementById("saldo").innerText = data.saldo || 0;
+
+      } else {
+        let nome = user.email.split("@")[0];
+
+        await setDoc(ref, {
+          nome: nome,
+          saldo: 0
+        });
+
+        document.getElementById("nome").innerText = nome;
+        document.getElementById("foto").innerText = nome.charAt(0);
+        document.getElementById("saldo").innerText = 0;
+      }
+
     });
 
-    document.getElementById("nome").innerText = nome;
-    document.getElementById("foto").innerText = nome.charAt(0);
-    document.getElementById("saldo").innerText = 0;
   } else {
     window.location.href = "index.html";
   }
@@ -191,11 +199,7 @@ window.salvarNome = async function() {
     nome: novo
   }, { merge: true });
 
-  document.getElementById("nome").innerText = novo;
-  document.getElementById("foto").innerText = novo.charAt(0);
   document.getElementById("novoNome").value = "";
-
-  alert("Nome salvo!");
 }
 
 // 🔥 SAIR
@@ -213,4 +217,4 @@ window.voltar = function() {
 </script>
 
 </body>
-</html>
+  </html>
