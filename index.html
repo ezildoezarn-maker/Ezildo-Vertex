@@ -1,165 +1,180 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-  <meta charset="UTF-8">
-  <title>Login / Cadastro</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login</title>
 
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: Arial, sans-serif;
-    }
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:Arial;
+}
 
-    body {
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: linear-gradient(135deg, #ff7e5f, #feb47b);
-    }
+body{
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background: linear-gradient(135deg,#ff7e5f,#feb47b);
+}
 
-    .container {
-      width: 90%;
-      max-width: 350px;
-      background: #fff;
-      padding: 25px;
-      border-radius: 15px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-      text-align: center;
-      animation: fadeIn 0.6s ease;
-    }
+.container{
+  width:90%;
+  max-width:350px;
+  background:#fff;
+  padding:25px;
+  border-radius:20px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.2);
+  text-align:center;
+}
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+h2{
+  margin-bottom:20px;
+}
 
-    h2 {
-      margin-bottom: 20px;
-    }
+input{
+  width:100%;
+  padding:12px;
+  margin:8px 0;
+  border-radius:10px;
+  border:1px solid #ccc;
+}
 
-    input {
-      width: 100%;
-      padding: 12px;
-      margin: 8px 0;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-      outline: none;
-    }
+button{
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:10px;
+  background:linear-gradient(90deg,#ff7e5f,#feb47b);
+  color:#fff;
+  font-weight:bold;
+  margin-top:10px;
+}
 
-    button {
-      width: 100%;
-      padding: 12px;
-      margin-top: 10px;
-      border: none;
-      border-radius: 10px;
-      background: linear-gradient(90deg, #ff7e5f, #feb47b);
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-      transition: 0.3s;
-    }
+.switch{
+  margin-top:15px;
+  font-size:14px;
+  cursor:pointer;
+}
 
-    button:hover {
-      opacity: 0.9;
-    }
-
-    .switch {
-      margin-top: 15px;
-      font-size: 14px;
-      cursor: pointer;
-      color: #555;
-    }
-
-    .hidden {
-      display: none;
-    }
-  </style>
+.hidden{
+  display:none;
+}
+</style>
 </head>
 
 <body>
 
 <div class="container">
 
-  <!-- LOGIN -->
-  <div id="loginBox">
-    <h2>Entrar</h2>
+<!-- LOGIN -->
+<div id="loginBox">
+<h2>Entrar</h2>
 
-    <input type="text" id="loginUser" placeholder="Nome">
-    <input type="password" id="loginPass" placeholder="Senha">
+<input type="email" id="loginUser" placeholder="Email">
+<input type="password" id="loginPass" placeholder="Senha">
 
-    <button onclick="login()">Entrar</button>
+<button onclick="login()">Entrar</button>
 
-    <div class="switch" onclick="mostrarCadastro()">
-      Não tem conta? Criar conta
-    </div>
-  </div>
+<div class="switch" onclick="mostrarCadastro()">
+Não tem conta? Criar conta
+</div>
+</div>
 
-  <!-- CADASTRO -->
-  <div id="cadastroBox" class="hidden">
-    <h2>Criar Conta</h2>
+<!-- CADASTRO -->
+<div id="cadastroBox" class="hidden">
+<h2>Criar Conta</h2>
 
-    <input type="text" id="cadUser" placeholder="Nome">
-    <input type="password" id="cadPass" placeholder="Senha">
+<input type="email" id="cadUser" placeholder="Email">
+<input type="password" id="cadPass" placeholder="Senha">
 
-    <button onclick="criarConta()">Cadastrar</button>
+<button onclick="criarConta()">Cadastrar</button>
 
-    <div class="switch" onclick="mostrarLogin()">
-      Já tem conta? Entrar
-    </div>
-  </div>
+<div class="switch" onclick="mostrarLogin()">
+Já tem conta? Entrar
+</div>
+</div>
 
 </div>
 
-<script>
+<script type="module">
 
-function mostrarCadastro() {
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword }
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+import { getFirestore, doc, setDoc }
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// 🔥 TEU FIREBASE (já correto)
+const firebaseConfig = {
+  apiKey: "AIzaSyD...",
+  authDomain: "vertex-megas.firebaseapp.com",
+  projectId: "vertex-megas",
+  storageBucket: "vertex-megas.appspot.com",
+  messagingSenderId: "639387672439",
+  appId: "1:639387672439:web:28c1be..."
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// alternar telas
+window.mostrarCadastro = function(){
   document.getElementById("loginBox").classList.add("hidden");
   document.getElementById("cadastroBox").classList.remove("hidden");
 }
 
-function mostrarLogin() {
+window.mostrarLogin = function(){
   document.getElementById("cadastroBox").classList.add("hidden");
   document.getElementById("loginBox").classList.remove("hidden");
 }
 
-// Criar conta
-function criarConta() {
-  let user = document.getElementById("cadUser").value;
-  let pass = document.getElementById("cadPass").value;
+// criar conta
+window.criarConta = async function(){
+  let email = document.getElementById("cadUser").value;
+  let senha = document.getElementById("cadPass").value;
 
-  if (!user || !pass) {
+  if(!email || !senha){
     alert("Preencha tudo!");
     return;
   }
 
-  localStorage.setItem("user", user);
-  localStorage.setItem("pass", pass);
+  try{
+    const userCred = await createUserWithEmailAndPassword(auth,email,senha);
 
-  alert("Conta criada com sucesso!");
-  mostrarLogin();
+    // salvar no banco
+    await setDoc(doc(db,"usuarios",userCred.user.uid),{
+      email: email,
+      saldo: 0
+    });
+
+    alert("Conta criada!");
+    mostrarLogin();
+
+  }catch(e){
+    alert(e.message);
+  }
 }
 
-// Login
-function login() {
-  let user = document.getElementById("loginUser").value;
-  let pass = document.getElementById("loginPass").value;
+// login
+window.login = async function(){
+  let email = document.getElementById("loginUser").value;
+  let senha = document.getElementById("loginPass").value;
 
-  let savedUser = localStorage.getItem("user");
-  let savedPass = localStorage.getItem("pass");
-
-  if (user === savedUser && pass === savedPass) {
-    localStorage.setItem("logado", "true");
+  try{
+    await signInWithEmailAndPassword(auth,email,senha);
     window.location.href = "home.html";
-  } else {
-    alert("Dados inválidos!");
+  }catch(e){
+    alert(e.message);
   }
 }
 
 </script>
 
 </body>
-</html>
+  </html>
