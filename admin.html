@@ -3,119 +3,119 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Painel Admin</title>
+<title>Admin Pro</title>
 
 <style>
-body {
-  margin: 0;
-  font-family: Arial;
-  background: #0f172a;
-  color: white;
+body{
+  margin:0;
+  font-family:Arial;
+  background:#0f172a;
+  color:white;
 }
 
-.topo {
-  padding: 20px;
-  text-align: center;
-  font-size: 20px;
-  background: #020617;
+/* topo */
+.topo{
+  padding:20px;
+  text-align:center;
+  background:#020617;
+  font-size:20px;
 }
 
-.msg {
-  position: fixed;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 15px 20px;
-  border-radius: 12px;
-  font-weight: bold;
-  display: none;
+/* mensagem */
+.msg{
+  position:fixed;
+  top:10px;
+  left:50%;
+  transform:translateX(-50%);
+  padding:12px 20px;
+  border-radius:10px;
+  display:none;
+  font-weight:bold;
 }
 
-.sucesso { background: #22c55e; }
-.erro { background: #ef4444; }
+.sucesso{background:#22c55e;}
+.erro{background:#ef4444;}
 
-.box { padding: 15px; }
-
-input {
-  width: 100%;
-  padding: 12px;
-  margin-top: 8px;
-  border-radius: 10px;
-  border: none;
+/* box */
+.box{
+  padding:15px;
 }
 
-.btn {
-  width: 100%;
-  padding: 12px;
-  margin-top: 10px;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  font-weight: bold;
+input{
+  width:100%;
+  padding:12px;
+  margin-top:8px;
+  border-radius:10px;
+  border:none;
 }
 
-.add {
-  background: linear-gradient(45deg,#22c55e,#16a34a);
-  color: white;
+.btn{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border:none;
+  border-radius:10px;
+  font-weight:bold;
+  cursor:pointer;
 }
 
-.container {
-  padding: 15px;
+.add{background:#22c55e;}
+.admin{background:#6366f1;}
+.remove{background:#ef4444;}
+
+/* info user */
+.userBox{
+  background:#1e293b;
+  margin-top:10px;
+  padding:15px;
+  border-radius:12px;
 }
 
-.card {
-  background: #1e293b;
-  padding: 15px;
-  border-radius: 15px;
-  margin-bottom: 10px;
+/* lista */
+.lista{
+  padding:15px;
 }
 
-.ok {
-  background: green;
-  color: white;
-  padding: 8px;
-  border: none;
-  border-radius: 8px;
-  margin-top: 5px;
-  margin-right: 5px;
-}
-
-.no {
-  background: red;
-  color: white;
-  padding: 8px;
-  border: none;
-  border-radius: 8px;
-  margin-top: 5px;
+.card{
+  background:#1e293b;
+  padding:12px;
+  border-radius:10px;
+  margin-bottom:10px;
 }
 </style>
 </head>
 
 <body>
 
+<div class="topo">⚙️ Admin Pro</div>
 <div id="msg" class="msg"></div>
 
 <div id="conteudo" style="display:none;">
-  <div class="topo">⚙️ Painel Admin</div>
 
-  <div class="box">
-    <h3>💰 Adicionar Saldo</h3>
-    <input id="emailUser" placeholder="Email do usuário">
-    <input id="valorSaldo" type="number" placeholder="Valor">
-    <button class="btn add" onclick="addSaldo()">➕ Adicionar Saldo</button>
-  </div>
+<!-- 🔍 BUSCAR -->
+<div class="box">
+  <h3>🔎 Buscar Usuário</h3>
 
-  <div class="container" id="lista"></div>
+  <input id="emailUser" placeholder="Email">
+
+  <button class="btn add" onclick="buscarUser()">Buscar</button>
+
+  <div id="userInfo" class="userBox" style="display:none;"></div>
+</div>
+
+<!-- 📋 LISTA -->
+<div class="lista" id="listaUsers"></div>
+
 </div>
 
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, onSnapshot, doc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, getDocs, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDYynjujS00ewRLDRKUJ2sVNv6FJFl5G9s",
+  apiKey: "AIzaSyDY...",
   authDomain: "vertex-megas.firebaseapp.com",
   projectId: "vertex-megas"
 };
@@ -124,122 +124,114 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-const lista = document.getElementById("lista");
-
-// 🔔 MENSAGEM
-function mostrarMsg(texto, tipo){
-  const msg = document.getElementById("msg");
-  msg.innerText = texto;
-  msg.className = "msg " + tipo;
-  msg.style.display = "block";
-
-  setTimeout(() => msg.style.display = "none", 3000);
+function msg(t,c){
+  const m=document.getElementById("msg");
+  m.innerText=t;
+  m.className="msg "+c;
+  m.style.display="block";
+  setTimeout(()=>m.style.display="none",3000);
 }
 
-// 🔐 PROTEÇÃO ADMIN
-onAuthStateChanged(auth, async (user) => {
-
-  if (!user) {
-    window.location.href = "index.html";
+// 🔐 PROTEÇÃO
+onAuthStateChanged(auth, async (user)=>{
+  if(!user){
+    window.location.href="index.html";
     return;
   }
 
-  const emailId = user.email.replace(/\./g, "_");
-  const ref = doc(db, "usuarios", emailId);
-  const snap = await getDoc(ref);
+  const id=user.email.replace(/\./g,"_");
+  const snap=await getDoc(doc(db,"usuarios",id));
 
-  if (!snap.exists() || !snap.data().isAdmin) {
-    document.body.innerHTML = `
-      <div style="
-        display:flex;
-        justify-content:center;
-        align-items:center;
-        height:100vh;
-        font-size:20px;
-      ">
-        ❌ Acesso negado
-      </div>
-    `;
+  if(!snap.exists() || !snap.data().isAdmin){
+    document.body.innerHTML="❌ Acesso negado";
     return;
   }
 
-  // liberar painel
-  document.getElementById("conteudo").style.display = "block";
-
-  // carregar pedidos
-  carregarPedidos();
+  document.getElementById("conteudo").style.display="block";
+  carregarLista();
 });
 
-// 📦 LISTAR PEDIDOS
-function carregarPedidos(){
-  onSnapshot(collection(db, "pedidos"), (snapshot) => {
+// 🔎 BUSCAR
+window.buscarUser = async function(){
+  const email=document.getElementById("emailUser").value;
 
-    lista.innerHTML = "";
-
-    snapshot.forEach((docItem) => {
-      const data = docItem.data();
-
-      lista.innerHTML += `
-        <div class="card">
-          <b>📱 Número:</b> ${data.numero}<br>
-          <b>📦 Pacote:</b> ${data.pacote}<br>
-          <b>📌 Status:</b> ${data.status}<br>
-
-          <button class="ok" onclick="aprovar('${docItem.id}')">✅ Aprovar</button>
-          <button class="no" onclick="rejeitar('${docItem.id}')">❌ Rejeitar</button>
-        </div>
-      `;
-    });
-
-  });
-}
-
-// ✅ APROVAR
-window.aprovar = async function(id){
-  await updateDoc(doc(db, "pedidos", id), {
-    status: "aprovado"
-  });
-  mostrarMsg("Pedido aprovado!", "sucesso");
-}
-
-// ❌ REJEITAR
-window.rejeitar = async function(id){
-  await updateDoc(doc(db, "pedidos", id), {
-    status: "rejeitado"
-  });
-  mostrarMsg("Pedido rejeitado!", "erro");
-}
-
-// 💰 ADICIONAR SALDO
-window.addSaldo = async function(){
-
-  const email = document.getElementById("emailUser").value;
-  const valor = parseInt(document.getElementById("valorSaldo").value);
-
-  if (!email || !valor){
-    mostrarMsg("Preencha tudo!", "erro");
+  if(!email){
+    msg("Digite email","erro");
     return;
   }
 
-  const emailId = email.replace(/\./g, "_");
-  const ref = doc(db, "usuarios", emailId);
-  const snap = await getDoc(ref);
+  const id=email.replace(/\./g,"_");
+  const ref=doc(db,"usuarios",id);
+  const snap=await getDoc(ref);
 
-  if (!snap.exists()){
-    mostrarMsg("Usuário não encontrado!", "erro");
+  if(!snap.exists()){
+    msg("Usuário não encontrado","erro");
     return;
   }
 
-  const saldoAtual = snap.data().saldo || 0;
+  const d=snap.data();
 
-  await updateDoc(ref, {
-    saldo: saldoAtual + valor
+  document.getElementById("userInfo").style.display="block";
+  document.getElementById("userInfo").innerHTML=`
+    👤 ${d.nome || "Sem nome"} <br>
+    📧 ${email} <br>
+    💰 Saldo: ${d.saldo || 0} MT <br>
+    👑 Admin: ${d.isAdmin ? "Sim" : "Não"}
+
+    <button class="btn add" onclick="addSaldo('${email}')">➕ Saldo</button>
+    <button class="btn admin" onclick="setAdmin('${email}',true)">👑 Tornar Admin</button>
+    <button class="btn remove" onclick="setAdmin('${email}',false)">❌ Remover Admin</button>
+  `;
+}
+
+// 💰 SALDO
+window.addSaldo = async function(email){
+  const valor=prompt("Valor:");
+
+  if(!valor) return;
+
+  const id=email.replace(/\./g,"_");
+  const ref=doc(db,"usuarios",id);
+  const snap=await getDoc(ref);
+
+  const saldo=snap.data().saldo || 0;
+
+  await updateDoc(ref,{saldo: saldo + parseInt(valor)});
+
+  msg("Saldo atualizado","sucesso");
+  buscarUser();
+}
+
+// 👑 ADMIN
+window.setAdmin = async function(email,valor){
+  const id=email.replace(/\./g,"_");
+
+  await updateDoc(doc(db,"usuarios",id),{
+    isAdmin: valor
   });
 
-  mostrarMsg("Saldo adicionado!", "sucesso");
+  msg("Atualizado","sucesso");
+  buscarUser();
+}
 
-  document.getElementById("emailUser").value = "";
-  document.getElementById("valorSaldo").value = "";
+// 📋 LISTA
+async function carregarLista(){
+  const snap=await getDocs(collection(db,"usuarios"));
+
+  const lista=document.getElementById("listaUsers");
+  lista.innerHTML="<h3>👥 Usuários</h3>";
+
+  snap.forEach(docItem=>{
+    const d=docItem.data();
+
+    lista.innerHTML+=`
+      <div class="card">
+        ${d.email}<br>
+        💰 ${d.saldo || 0} MT<br>
+        👑 ${d.isAdmin ? "Admin" : "User"}
+      </div>
+    `;
+  });
 }
 
 </script>
