@@ -64,7 +64,6 @@ body {
   font-size: 14px;
 }
 
-/* INPUT */
 input {
   width: 100%;
   padding: 10px;
@@ -73,7 +72,6 @@ input {
   margin-top: 10px;
 }
 
-/* SALDO */
 .saldo {
   margin-top: 15px;
   padding: 12px;
@@ -82,7 +80,6 @@ input {
   font-weight: bold;
 }
 
-/* BOTÕES */
 .btn {
   width: 100%;
   padding: 13px;
@@ -106,6 +103,12 @@ input {
 .voltar {
   background: #eee;
 }
+
+/* MENSAGEM */
+.msg {
+  margin-top: 10px;
+  font-size: 14px;
+}
 </style>
 </head>
 
@@ -116,7 +119,7 @@ input {
 <div class="foto" id="foto">👤</div>
 
 <div class="card">
-  <div class="nome" id="nome"></div>
+  <div class="nome" id="nome">...</div>
   <div class="email" id="email"></div>
 
   <input type="text" id="novoNome" placeholder="Alterar nome">
@@ -126,6 +129,8 @@ input {
   <button class="btn salvar" onclick="salvarNome()">💾 Salvar Nome</button>
   <button class="btn sair" onclick="sair()">🚪 Sair</button>
   <button class="btn voltar" onclick="voltar()">⬅ Voltar</button>
+
+  <div id="msg" class="msg"></div>
 </div>
 
 <script type="module">
@@ -134,7 +139,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// 🔥 COLOCA TUA API KEY AQUI
 const firebaseConfig = {
   apiKey: "AIzaSyDYynjujS00ewRLDRKUJ2sVNv6FJFl5G9s",
   authDomain: "vertex-megas.firebaseapp.com",
@@ -148,68 +152,81 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-let uid = null;
+// mensagem
+function msg(texto, cor="black"){
+  const el = document.getElementById("msg");
+  el.innerText = texto;
+  el.style.color = cor;
+}
 
-// 🔥 CARREGAR USUÁRIO EM TEMPO REAL
+// 🔥 CARREGAR USUÁRIO
 onAuthStateChanged(auth, (user) => {
-  if (user) {
-
-    uid = user.uid;
-    document.getElementById("email").innerText = user.email;
-
-    const ref = doc(db, "users", uid);
-
-    // 🔥 TEMPO REAL (ATUALIZA AUTOMÁTICO)
-    onSnapshot(ref, async (docSnap) => {
-
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-
-        document.getElementById("nome").innerText = data.nome || "Sem nome";
-        document.getElementById("foto").innerText = (data.nome || "U").charAt(0);
-        document.getElementById("saldo").innerText = data.saldo || 0;
-
-      } else {
-        let nome = user.email.split("@")[0];
-
-        await setDoc(ref, {
-          nome: nome,
-          saldo: 0
-        });
-
-        document.getElementById("nome").innerText = nome;
-        document.getElementById("foto").innerText = nome.charAt(0);
-        document.getElementById("saldo").innerText = 0;
-      }
-
-    });
-
-  } else {
+  if (!user) {
     window.location.href = "index.html";
+    return;
   }
+
+  const email = user.email;
+  const emailId = email.replace(/\./g, "_");
+
+  document.getElementById("email").innerText = email;
+
+  const ref = doc(db, "usuarios", emailId);
+
+  onSnapshot(ref, async (snap) => {
+
+    if (snap.exists()) {
+      const data = snap.data();
+
+      document.getElementById("nome").innerText = data.nome || "Sem nome";
+      document.getElementById("foto").innerText = (data.nome || "U")[0];
+      document.getElementById("saldo").innerText = data.saldo || 0;
+
+    } else {
+      const nome = email.split("@")[0];
+
+      await setDoc(ref, {
+        nome: nome,
+        email: email,
+        saldo: 0
+      });
+
+      document.getElementById("nome").innerText = nome;
+      document.getElementById("foto").innerText = nome[0];
+      document.getElementById("saldo").innerText = 0;
+    }
+
+  });
 });
 
-// 🔥 SALVAR NOME
+// SALVAR NOME
 window.salvarNome = async function() {
   const novo = document.getElementById("novoNome").value;
 
-  if (!novo) return alert("Digite um nome");
+  if (!novo) {
+    msg("Digite um nome", "red");
+    return;
+  }
 
-  await setDoc(doc(db, "users", uid), {
+  const user = auth.currentUser;
+  const emailId = user.email.replace(/\./g, "_");
+
+  await setDoc(doc(db, "usuarios", emailId), {
     nome: novo
   }, { merge: true });
 
   document.getElementById("novoNome").value = "";
+  msg("Nome atualizado!", "green");
 }
 
-// 🔥 SAIR
+// SAIR
 window.sair = function() {
   signOut(auth).then(() => {
     window.location.href = "index.html";
   });
 }
 
-// 🔥 VOLTAR
+// VOLTAR
 window.voltar = function() {
   window.location.href = "home.html";
 }
@@ -217,4 +234,4 @@ window.voltar = function() {
 </script>
 
 </body>
-  </html>
+</html>
