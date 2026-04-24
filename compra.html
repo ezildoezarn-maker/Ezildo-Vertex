@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Processar Compra</title>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background: linear-gradient(135deg,#0f172a,#1e3a8a);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+  color:white;
+}
+
+/* BOX */
+.box{
+  width:90%;
+  max-width:320px;
+  background:white;
+  color:black;
+  padding:25px;
+  border-radius:20px;
+  text-align:center;
+  box-shadow:0 10px 30px rgba(0,0,0,0.3);
+}
+
+h2{margin-bottom:10px;}
+
+#info{
+  font-size:14px;
+  color:#555;
+}
+
+#msg{
+  margin-top:10px;
+  font-weight:bold;
+}
+
+/* TOAST */
+#toast{
+  position:fixed;
+  bottom:80px;
+  left:50%;
+  transform:translateX(-50%) translateY(50px);
+  background:#111;
+  color:#fff;
+  padding:14px 20px;
+  border-radius:12px;
+  opacity:0;
+  transition:0.4s;
+}
+
+#toast.show{
+  opacity:1;
+  transform:translateX(-50%) translateY(0);
+}
+
+.toast-sucesso{background:#22c55e;}
+.toast-erro{background:#ef4444;}
+.toast-aviso{background:#f59e0b;}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+  <h2>⏳ Processando compra...</h2>
+  <p id="info"></p>
+  <div id="msg"></div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, getDoc, updateDoc, collection, addDoc }
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// 🔥 FIREBASE CONFIG
+const firebaseConfig = {
+  apiKey: "AIzaSyDYynjujS00ewRLDRKUJ2sVNv6FJFl5G9s",
+  authDomain: "vertex-megas.firebaseapp.com",
+  projectId: "vertex-megas"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// 🔔 TOAST
+function toast(texto, tipo="sucesso"){
+  const t = document.getElementById("toast");
+
+  t.className = "";
+  t.classList.add("show");
+
+  if(tipo==="erro") t.classList.add("toast-erro");
+  else if(tipo==="aviso") t.classList.add("toast-aviso");
+  else t.classList.add("toast-sucesso");
+
+  t.innerText = texto;
+
+  setTimeout(()=>{
+    t.classList.remove("show");
+  },3000);
+}
+
+// 📦 PEGAR DADOS
+const params = new URLSearchParams(window.location.search);
+const pacote = params.get("pacote");
+const preco = parseInt(params.get("preco"));
+
+document.getElementById("info").innerText =
+  `📦 ${pacote} - ${preco} MT`;
+
+// 🚀 PROCESSAR COMPRA
+onAuthStateChanged(auth, async (user)=>{
+  if(!user){
+    window.location.href = "index.html";
+    return;
+  }
+
+  try{
+
+    const emailId = user.email.replace(/\./g,"_");
+    const refUser = doc(db,"usuarios",emailId);
+    const snap = await getDoc(refUser);
+
+    if(!snap.exists()){
+      toast("Usuário não encontrado","erro");
+      return;
+    }
+
+    let saldo = snap.data().saldo || 0;
+
+    // ❌ SALDO INSUFICIENTE
+    if(saldo < preco){
+      document.getElementById("msg").innerText = "❌ Saldo insuficiente";
+      toast("Saldo insuficiente","erro");
+      return;
+    }
+
+    // 💸 DESCONTAR SALDO
+    await updateDoc(refUser,{
+      saldo: saldo - preco
+    });
+
+    // 📦 CRIAR PEDIDO
+    await addDoc(collection(db,"pedidos"),{
+      email: user.email,
+      pacote: pacote,
+      preco: preco,
+      status: "pendente",
+      data: new Date().toISOString(),
+      notificado: false
+    });
+
+    document.getElementById("msg").innerText = "✅ Pedido enviado!";
+    toast("Pedido enviado com sucesso!");
+
+    // 🔄 REDIRECIONAR
+    setTimeout(()=>{
+      window.location.href = "home.html";
+    },2000);
+
+  }catch(e){
+    console.error(e);
+    toast("Erro ao processar compra","erro");
+  }
+});
+
+</script>
+
+</body>
+</html>
