@@ -162,8 +162,7 @@ body {
   <div class="card mega">
     <img src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=800&q=80">
     <h3>📶 Venda de Megas</h3>
-    <button onclick="mostrarAviso('AINDA EM CRIAÇÃO')">Ver Pacotes</button>
-  </div>
+    <button onclick="irComprar()">Ver Pacotes</button>
 
   <!-- BOT AUTOMÁTICO -->
   <div class="card auto">
@@ -187,7 +186,7 @@ body {
   <span onclick="irLoja()">🛍️ Loja</span>
   <span onclick="irPerfil()">👤 Perfil</span>
   <span onclick="irSuporte()">💬 Suporte</span>
-  <span onclick="irGrupo()">👥 Grupo</span>
+  <span onclick="irGrupo()">👥 Painel Admin</span>
 </div>
 
 <script type="module">
@@ -236,6 +235,10 @@ window.irSuporte = function() {
 
 window.irGrupo = function() {
   window.location.href = "admin.html";
+  }
+
+  window.irComprar = function() {
+  window.location.href = "comprar.html";
   }
 
 window.mostrarAviso = function(texto) {
