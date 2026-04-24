@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comprar Megas</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background: linear-gradient(135deg, #0f172a, #1e3a8a);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+/* CAIXA */
+.box {
+  width: 90%;
+  max-width: 350px;
+  background: white;
+  padding: 20px;
+  border-radius: 20px;
+  text-align: center;
+}
+
+/* INPUT */
+input, select {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+}
+
+/* BOTÃO */
+button {
+  width: 100%;
+  padding: 13px;
+  margin-top: 15px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(45deg, #36d1dc, #5b86e5);
+  color: white;
+  font-weight: bold;
+}
+
+/* MENSAGEM */
+#msg {
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: bold;
+  padding: 10px;
+  border-radius: 10px;
+  display: none;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+  <h2>📶 Comprar Megas</h2>
+
+  <select id="pacote">
+    <option value="">Escolher pacote</option>
+    <option value="100MB">100MB - 10MT</option>
+    <option value="500MB">500MB - 40MT</option>
+    <option value="1GB">1GB - 70MT</option>
+  </select>
+
+  <input type="number" id="numero" placeholder="Número (84 ou 85...)">
+
+  <button onclick="enviar()">Enviar Pedido</button>
+
+  <div id="msg"></div>
+
+  <button onclick="voltar()" style="background:#eee;color:black;">⬅ Voltar</button>
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, addDoc, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// 🔥 CONFIG
+const firebaseConfig = {
+  apiKey: "AIzaSyDYynjujS00ewRLDRKUJ2sVNv6FJFl5G9s",
+  authDomain: "vertex-megas.firebaseapp.com",
+  projectId: "vertex-megas",
+  storageBucket: "vertex-megas.appspot.com",
+  messagingSenderId: "639387672439",
+  appId: "1:639387672439:web:28c1be3827998c4f41cb72"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let userEmail = null;
+
+// 🔐 LOGIN
+onAuthStateChanged(auth, (user)=>{
+  if(!user){
+    window.location.href = "index.html";
+    return;
+  }
+  userEmail = user.email;
+});
+
+// 💰 PREÇOS
+function getPreco(pacote){
+  if(pacote === "100MB") return 10;
+  if(pacote === "500MB") return 40;
+  if(pacote === "1GB") return 70;
+  return 0;
+}
+
+// 💬 MOSTRAR MENSAGEM
+function showMsg(texto, cor){
+  const msg = document.getElementById("msg");
+  msg.innerText = texto;
+  msg.style.background = cor;
+  msg.style.display = "block";
+}
+
+// 🚀 ENVIAR
+window.enviar = async function(){
+
+  let num = document.getElementById("numero").value;
+  let pacote = document.getElementById("pacote").value;
+
+  if(!pacote || !num){
+    showMsg("⚠️ Preencha tudo!", "#f87171");
+    return;
+  }
+
+  if(num.length !== 9 || !(num.startsWith("84") || num.startsWith("85"))){
+    showMsg("❌ Número inválido!", "#f87171");
+    return;
+  }
+
+  try{
+
+    const emailId = userEmail.replace(/\./g, "_");
+    const refUser = doc(db, "usuarios", emailId);
+    const snap = await getDoc(refUser);
+
+    if(!snap.exists()){
+      showMsg("Erro: usuário não encontrado", "#f87171");
+      return;
+    }
+
+    let saldo = snap.data().saldo || 0;
+    let preco = getPreco(pacote);
+
+    if(saldo < preco){
+      showMsg("💸 Saldo insuficiente!", "#f87171");
+      return;
+    }
+
+    // descontar saldo
+    await updateDoc(refUser,{
+      saldo: saldo - preco
+    });
+
+    // salvar pedido
+    await addDoc(collection(db,"pedidos"),{
+      email: userEmail,
+      numero: num,
+      pacote: pacote,
+      preco: preco,
+      status: "pendente",
+      data: new Date().toISOString()
+    });
+
+    showMsg("✅ Pedido enviado com sucesso!", "#4ade80");
+
+    document.getElementById("numero").value = "";
+    document.getElementById("pacote").value = "";
+
+  }catch(e){
+    console.error(e);
+    showMsg("Erro ao enviar pedido!", "#f87171");
+  }
+}
+
+// 🔙 VOLTAR
+window.voltar = function(){
+  window.location.href = "home.html";
+}
+
+</script>
+
+</body>
+</html>
