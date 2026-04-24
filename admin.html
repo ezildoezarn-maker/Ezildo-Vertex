@@ -13,15 +13,13 @@ body{
   color:white;
 }
 
-/* TOPO */
 .topo{
-  background:#020617;
-  padding:15px;
+  padding:20px;
   text-align:center;
-  font-size:18px;
+  background:#020617;
+  font-size:20px;
 }
 
-/* BOX */
 .box{
   padding:15px;
 }
@@ -34,7 +32,6 @@ input, select{
   border:none;
 }
 
-/* BOTÕES */
 .btn{
   width:100%;
   padding:12px;
@@ -45,23 +42,21 @@ input, select{
   cursor:pointer;
 }
 
-.add{ background:#22c55e; color:white; }
-.ok{ background:#22c55e; color:white; }
-.no{ background:#ef4444; color:white; }
+.green{background:#22c55e;}
+.red{background:#ef4444;}
+.blue{background:#3b82f6;}
 
-/* CARDS */
 .card{
   background:#1e293b;
   padding:15px;
   border-radius:15px;
-  margin-bottom:10px;
+  margin:10px;
 }
 
-/* MSG */
-#msg{
+.msg{
   text-align:center;
-  font-weight:bold;
   margin-top:10px;
+  font-weight:bold;
 }
 </style>
 </head>
@@ -76,14 +71,14 @@ input, select{
 
 <input id="email" placeholder="Email">
 <input id="senha" placeholder="Senha">
-<input id="saldo" type="number" placeholder="Saldo">
+<input id="saldo" type="number" placeholder="Saldo inicial">
 
 <select id="tipo">
-  <option value="user">User</option>
+  <option value="user">Usuário</option>
   <option value="admin">Admin</option>
 </select>
 
-<button class="btn add" onclick="criarUser()">Criar</button>
+<button class="btn green" onclick="criarUser()">Criar Usuário</button>
 
 <div id="msg"></div>
 
@@ -91,7 +86,7 @@ input, select{
 
 <div class="box">
 <h3>👥 Usuários</h3>
-<div id="users"></div>
+<div id="usuarios"></div>
 </div>
 
 <div class="box">
@@ -102,11 +97,17 @@ input, select{
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, setDoc, collection, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getAuth, onAuthStateChanged, createUserWithEmailAndPassword
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+import {
+  getFirestore, doc, setDoc, getDoc,
+  collection, onSnapshot, updateDoc, deleteDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDYynjujS00ewRLDRKUJ2sVNv6FJFl5G9s",
+  apiKey: "SUA_KEY",
   authDomain: "vertex-megas.firebaseapp.com",
   projectId: "vertex-megas"
 };
@@ -115,108 +116,150 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-const msg = document.getElementById("msg");
+let adminEmail = null;
 
-// 🔥 FUNÇÃO MENSAGEM
-function mostrar(texto, cor){
-  msg.innerText = texto;
-  msg.style.color = cor;
-  setTimeout(()=> msg.innerText = "", 4000);
+// 🔐 PROTEGER PAINEL
+onAuthStateChanged(auth, async(user)=>{
+  if(!user){
+    window.location.href = "index.html";
+    return;
+  }
+
+  adminEmail = user.email.replace(/\./g,"_");
+
+  const ref = doc(db,"usuarios",adminEmail);
+  const snap = await getDoc(ref);
+
+  if(!snap.exists()){
+    window.location.href = "home.html";
+    return;
+  }
+
+  const data = snap.data();
+
+  if(data.tipo !== "admin" || data.ativo === false){
+    window.location.href = "home.html";
+  }
+});
+
+// 💬 mensagem
+function mostrar(texto, cor="white"){
+  const m = document.getElementById("msg");
+  m.innerText = texto;
+  m.style.color = cor;
 }
 
-// 🔥 CRIAR USUÁRIO
-window.criarUser = async function(){
+// ➕ CRIAR USUÁRIO
+window.criarUser = async()=>{
 
   let email = document.getElementById("email").value;
   let senha = document.getElementById("senha").value;
-  let saldo = parseInt(document.getElementById("saldo").value) || 0;
+  let saldo = parseInt(document.getElementById("saldo").value);
   let tipo = document.getElementById("tipo").value;
 
   if(!email || !senha){
-    mostrar("Preencha tudo!", "red");
+    mostrar("Preencha tudo","red");
     return;
   }
 
   try{
 
-    // 🔐 cria auth
-    await createUserWithEmailAndPassword(auth,email,senha);
+    const cred = await createUserWithEmailAndPassword(auth,email,senha);
 
-    // 🔑 ID baseado no email
     const id = email.replace(/\./g,"_");
 
-    // 💾 salvar no banco
     await setDoc(doc(db,"usuarios",id),{
       email,
-      saldo,
-      tipo
+      saldo: saldo || 0,
+      tipo,
+      ativo: true
     });
 
-    mostrar("Usuário criado!", "green");
+    mostrar("Usuário criado!","lightgreen");
 
   }catch(e){
-    mostrar(e.message,"red");
+    mostrar("Erro: "+e.message,"red");
   }
 }
 
-
-// 🔥 LISTAR USUÁRIOS
+// 👥 LISTAR USUÁRIOS
 onSnapshot(collection(db,"usuarios"), (snap)=>{
-
-  const div = document.getElementById("users");
-  div.innerHTML = "";
+  let html = "";
 
   snap.forEach(docu=>{
     let d = docu.data();
 
-    div.innerHTML += `
-      <div class="card">
-        📧 ${d.email}<br>
-        💰 ${d.saldo} MT<br>
-        🛡️ ${d.tipo}
-      </div>
+    html += `
+    <div class="card">
+      📧 ${d.email}<br>
+      💰 ${d.saldo} MT<br>
+      👤 ${d.tipo}<br>
+      🔒 ${d.ativo ? "Ativo" : "Bloqueado"}
+
+      <button class="btn blue" onclick="toggle('${docu.id}', ${d.ativo})">
+        ${d.ativo ? "Desativar" : "Ativar"}
+      </button>
+
+      <button class="btn red" onclick="apagar('${docu.id}')">
+        Apagar
+      </button>
+    </div>
     `;
   });
 
+  document.getElementById("usuarios").innerHTML = html;
 });
 
+// 🔄 ATIVAR/DESATIVAR
+window.toggle = async(id, ativo)=>{
+  await updateDoc(doc(db,"usuarios",id),{
+    ativo: !ativo
+  });
+}
 
-// 🔥 LISTAR PEDIDOS
+// ❌ APAGAR
+window.apagar = async(id)=>{
+  await deleteDoc(doc(db,"usuarios",id));
+}
+
+// 📦 PEDIDOS
 onSnapshot(collection(db,"pedidos"), (snap)=>{
-
-  const div = document.getElementById("pedidos");
-  div.innerHTML = "";
+  let html = "";
 
   snap.forEach(docu=>{
     let d = docu.data();
 
-    div.innerHTML += `
-      <div class="card">
-        📧 ${d.email}<br>
-        📱 ${d.numero}<br>
-        📦 ${d.pacote}<br>
-        💰 ${d.preco} MT<br>
-        📌 ${d.status}<br>
+    html += `
+    <div class="card">
+      📧 ${d.email}<br>
+      📱 ${d.numero}<br>
+      📦 ${d.pacote}<br>
+      💰 ${d.preco} MT<br>
+      📌 ${d.status}
 
-        <button class="btn ok" onclick="aprovar('${docu.id}')">Aprovar</button>
-        <button class="btn no" onclick="rejeitar('${docu.id}')">Rejeitar</button>
-      </div>
+      <button class="btn green" onclick="aprovar('${docu.id}')">
+        Aprovar
+      </button>
+
+      <button class="btn red" onclick="rejeitar('${docu.id}')">
+        Rejeitar
+      </button>
+    </div>
     `;
   });
 
+  document.getElementById("pedidos").innerHTML = html;
 });
 
-
-// 🔥 APROVAR
-window.aprovar = async function(id){
+// ✔️ APROVAR
+window.aprovar = async(id)=>{
   await updateDoc(doc(db,"pedidos",id),{
     status:"aprovado"
   });
 }
 
-
-// 🔥 REJEITAR
-window.rejeitar = async function(id){
+// ❌ REJEITAR
+window.rejeitar = async(id)=>{
   await updateDoc(doc(db,"pedidos",id),{
     status:"rejeitado"
   });
