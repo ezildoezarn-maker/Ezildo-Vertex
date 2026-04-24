@@ -13,7 +13,6 @@ body{
   color:white;
 }
 
-/* TOPO */
 .topo{
   padding:20px;
   text-align:center;
@@ -22,7 +21,6 @@ body{
   background:#020617;
 }
 
-/* CAIXA */
 .box{
   background:#1e293b;
   margin:15px;
@@ -30,7 +28,6 @@ body{
   border-radius:15px;
 }
 
-/* INPUT */
 input, select{
   width:100%;
   padding:12px;
@@ -39,7 +36,6 @@ input, select{
   border:none;
 }
 
-/* BOTÕES */
 button{
   width:100%;
   padding:12px;
@@ -50,10 +46,12 @@ button{
   cursor:pointer;
 }
 
-.criar{background:#22c55e;color:white;}
-.add{background:#3b82f6;color:white;}
+.criar{background:#22c55e;}
+.green{background:#22c55e;}
+.red{background:#ef4444;}
+.yellow{background:#eab308;color:black;}
+.blue{background:#3b82f6;}
 
-/* LISTA */
 .card{
   background:#020617;
   padding:15px;
@@ -61,12 +59,6 @@ button{
   margin-top:10px;
 }
 
-.linha{
-  font-size:14px;
-  margin:3px 0;
-}
-
-/* BOTÕES CARD */
 .actions button{
   width:auto;
   padding:8px;
@@ -75,12 +67,6 @@ button{
   border-radius:8px;
 }
 
-.green{background:#22c55e;color:white;}
-.red{background:#ef4444;color:white;}
-.yellow{background:#eab308;color:black;}
-.blue{background:#3b82f6;color:white;}
-
-/* MSG */
 #msg{
   text-align:center;
   margin:10px;
@@ -92,23 +78,22 @@ button{
 <body>
 
 <div class="topo">⚙️ Painel Admin PRO</div>
-
 <div id="msg"></div>
 
-<!-- CRIAR USUÁRIO -->
+<!-- CRIAR -->
 <div class="box">
 <h3>➕ Criar Usuário</h3>
 
-<input id="email" placeholder="Email">
-<input id="senha" placeholder="Senha">
+<input id="emailInput" placeholder="Email">
+<input id="senhaInput" placeholder="Senha">
 
-<select id="tipo">
-  <option value="user">User</option>
-  <option value="admin">Admin</option>
-  <option value="admin2">Admin Nível 2</option>
+<select id="tipoSelect">
+<option value="user">User</option>
+<option value="admin">Admin</option>
+<option value="admin2">Admin Nível 2</option>
 </select>
 
-<input id="saldo" type="number" placeholder="Saldo inicial">
+<input id="saldoInput" type="number" placeholder="Saldo inicial">
 
 <button class="criar" onclick="criar()">Criar Usuário</button>
 </div>
@@ -129,25 +114,16 @@ button{
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getAuth,
-  onAuthStateChanged,
-  createUserWithEmailAndPassword,
-  signOut
+  getAuth,onAuthStateChanged,createUserWithEmailAndPassword
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
-  getFirestore,
-  doc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  getDoc,
-  collection,
-  onSnapshot
+  getFirestore,doc,setDoc,updateDoc,getDoc,
+  collection,onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDYynjujS00ewRLDRKUJ2sVNv6FJFl5G9s",
+  apiKey: "AIzaSy...",
   authDomain: "vertex-megas.firebaseapp.com",
   projectId: "vertex-megas"
 };
@@ -161,75 +137,77 @@ const msg = document.getElementById("msg");
 // 🔐 PROTEGER ADMIN
 onAuthStateChanged(auth, async(user)=>{
   if(!user){
-    window.location.href="index.html";
+    location="index.html";
     return;
   }
 
-  const emailId = user.email.replace(/\./g,"_");
-  const ref = doc(db,"usuarios",emailId);
-  const snap = await getDoc(ref);
+  const id = user.email.replace(/\./g,"_");
+  const snap = await getDoc(doc(db,"usuarios",id));
 
-  if(!snap.exists() || (snap.data().tipo !== "admin" && snap.data().tipo !== "admin2")){
-    msg.innerText = "❌ Acesso negado";
-    setTimeout(()=>window.location.href="home.html",2000);
+  if(!snap.exists() || !["admin","admin2"].includes(snap.data().tipo)){
+    msg.innerText="❌ Acesso negado";
+    msg.style.color="red";
+    setTimeout(()=>location="home.html",1500);
   }
 });
 
-// 🔥 CRIAR USUÁRIO SEM SAIR
-window.criar = async function(){
+// 🔥 CRIAR USUÁRIO
+window.criar = async ()=>{
 
-  const email = document.getElementById("email").value;
-  const senha = document.getElementById("senha").value;
-  const tipo = document.getElementById("tipo").value;
-  const saldo = parseInt(document.getElementById("saldo").value) || 0;
+  const email = emailInput.value;
+  const senha = senhaInput.value;
+  const tipo = tipoSelect.value;
+  const saldo = parseInt(saldoInput.value)||0;
+
+  if(!email || !senha){
+    msg.innerText="⚠️ Preencha tudo";
+    msg.style.color="orange";
+    return;
+  }
 
   try{
-
-    const tempApp = initializeApp(firebaseConfig,"temp");
-    const tempAuth = getAuth(tempApp);
+    const temp = initializeApp(firebaseConfig,"temp"+Date.now());
+    const tempAuth = getAuth(temp);
 
     await createUserWithEmailAndPassword(tempAuth,email,senha);
 
-    const emailId = email.replace(/\./g,"_");
+    const id = email.replace(/\./g,"_");
 
-    await setDoc(doc(db,"usuarios",emailId),{
-      email,
-      saldo,
-      tipo,
-      ativo:true
+    await setDoc(doc(db,"usuarios",id),{
+      email, saldo, tipo, ativo:true
     });
 
-    msg.innerText="✅ Usuário criado!";
+    msg.innerText="✅ Usuário criado";
     msg.style.color="lightgreen";
 
-    await tempAuth.signOut();
+    emailInput.value="";
+    senhaInput.value="";
+    saldoInput.value="";
 
   }catch(e){
     msg.innerText="❌ "+e.message;
     msg.style.color="red";
   }
-}
+};
 
 // 🔥 LISTAR USUÁRIOS
-onSnapshot(collection(db,"usuarios"),(snap)=>{
-  const div=document.getElementById("usuarios");
-  div.innerHTML="";
+onSnapshot(collection(db,"usuarios"),snap=>{
+  usuarios.innerHTML="";
 
   snap.forEach(docu=>{
     const d=docu.data();
 
-    div.innerHTML+=`
+    usuarios.innerHTML+=`
     <div class="card">
-      <div class="linha">📧 ${d.email}</div>
-      <div class="linha">💰 ${d.saldo} MT</div>
-      <div class="linha">🔑 ${d.tipo}</div>
-      <div class="linha">📌 ${d.ativo ? "Ativo":"Bloqueado"}</div>
+      📧 ${d.email}<br>
+      💰 ${d.saldo} MT<br>
+      🔑 ${d.tipo}<br>
+      📌 ${d.ativo?"Ativo":"Bloqueado"}<br>
 
       <div class="actions">
         <button class="green" onclick="ativar('${docu.id}')">Ativar</button>
         <button class="yellow" onclick="desativar('${docu.id}')">Desativar</button>
         <button class="blue" onclick="addSaldo('${docu.id}')">+Saldo</button>
-        <button class="red" onclick="apagar('${docu.id}')">Apagar</button>
       </div>
     </div>
     `;
@@ -237,36 +215,41 @@ onSnapshot(collection(db,"usuarios"),(snap)=>{
 });
 
 // 🔧 FUNÇÕES
-window.ativar=id=>updateDoc(doc(db,"usuarios",id),{ativo:true});
-window.desativar=id=>updateDoc(doc(db,"usuarios",id),{ativo:false});
-
-window.apagar=id=>{
-  deleteDoc(doc(db,"usuarios",id));
+window.ativar = async(id)=>{
+  await updateDoc(doc(db,"usuarios",id),{ativo:true});
+  msg.innerText="✅ Usuário ativado";
+  msg.style.color="lightgreen";
 };
 
-window.addSaldo=async(id)=>{
+window.desativar = async(id)=>{
+  await updateDoc(doc(db,"usuarios",id),{ativo:false});
+  msg.innerText="🚫 Usuário desativado";
+  msg.style.color="orange";
+};
+
+window.addSaldo = async(id)=>{
   const valor = prompt("Valor:");
   if(!valor) return;
 
-  const ref=doc(db,"usuarios",id);
-  const snap=await getDoc(ref);
-
-  let saldo=snap.data().saldo||0;
+  const ref = doc(db,"usuarios",id);
+  const snap = await getDoc(ref);
 
   await updateDoc(ref,{
-    saldo: saldo + parseInt(valor)
+    saldo:(snap.data().saldo||0)+parseInt(valor)
   });
+
+  msg.innerText="💰 Saldo atualizado";
+  msg.style.color="lightblue";
 };
 
 // 🔥 PEDIDOS
-onSnapshot(collection(db,"pedidos"),(snap)=>{
-  const div=document.getElementById("pedidos");
-  div.innerHTML="";
+onSnapshot(collection(db,"pedidos"),snap=>{
+  pedidos.innerHTML="";
 
   snap.forEach(docu=>{
     const d=docu.data();
 
-    div.innerHTML+=`
+    pedidos.innerHTML+=`
     <div class="card">
       📧 ${d.email}<br>
       📱 ${d.numero}<br>
@@ -287,4 +270,4 @@ window.rejeitar=id=>updateDoc(doc(db,"pedidos",id),{status:"rejeitado"});
 </script>
 
 </body>
-</html>
+  </html>
