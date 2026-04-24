@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin</title>
+<title>Painel Admin</title>
 
 <style>
 body{
@@ -13,30 +13,20 @@ body{
   color:white;
 }
 
-/* topo */
+/* TOPO */
 .topo{
-  padding:20px;
-  text-align:center;
   background:#020617;
+  padding:15px;
+  text-align:center;
+  font-size:18px;
 }
 
-/* msg */
-.msg{
-  position:fixed;
-  top:10px;
-  left:50%;
-  transform:translateX(-50%);
-  padding:10px 20px;
-  border-radius:10px;
-  display:none;
+/* BOX */
+.box{
+  padding:15px;
 }
-.ok{background:#22c55e;}
-.erro{background:#ef4444;}
 
-/* box */
-.box{padding:15px;}
-
-input{
+input, select{
   width:100%;
   padding:12px;
   margin-top:8px;
@@ -44,6 +34,7 @@ input{
   border:none;
 }
 
+/* BOTÕES */
 .btn{
   width:100%;
   padding:12px;
@@ -51,18 +42,26 @@ input{
   border:none;
   border-radius:10px;
   font-weight:bold;
+  cursor:pointer;
 }
 
-.add{background:#22c55e;}
-.admin{background:#6366f1;}
-.remove{background:#ef4444;}
+.add{ background:#22c55e; color:white; }
+.ok{ background:#22c55e; color:white; }
+.no{ background:#ef4444; color:white; }
 
-/* lista */
+/* CARDS */
 .card{
   background:#1e293b;
-  margin:10px;
-  padding:12px;
-  border-radius:10px;
+  padding:15px;
+  border-radius:15px;
+  margin-bottom:10px;
+}
+
+/* MSG */
+#msg{
+  text-align:center;
+  font-weight:bold;
+  margin-top:10px;
 }
 </style>
 </head>
@@ -70,25 +69,41 @@ input{
 <body>
 
 <div class="topo">⚙️ Painel Admin</div>
-<div id="msg" class="msg"></div>
 
-<!-- 🔎 BUSCAR -->
 <div class="box">
-  <h3>🔎 Buscar Usuário</h3>
-  <input id="emailUser" placeholder="Email">
-  <button class="btn add" onclick="buscarUser()">Buscar</button>
 
-  <div id="userInfo"></div>
+<h3>➕ Criar Usuário</h3>
+
+<input id="email" placeholder="Email">
+<input id="senha" placeholder="Senha">
+<input id="saldo" type="number" placeholder="Saldo">
+
+<select id="tipo">
+  <option value="user">User</option>
+  <option value="admin">Admin</option>
+</select>
+
+<button class="btn add" onclick="criarUser()">Criar</button>
+
+<div id="msg"></div>
+
 </div>
 
-<!-- 📦 PEDIDOS -->
-<div id="listaPedidos"></div>
+<div class="box">
+<h3>👥 Usuários</h3>
+<div id="users"></div>
+</div>
+
+<div class="box">
+<h3>📦 Pedidos</h3>
+<div id="pedidos"></div>
+</div>
 
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, onSnapshot, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, setDoc, collection, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDYynjujS00ewRLDRKUJ2sVNv6FJFl5G9s",
@@ -100,147 +115,111 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-function msg(t,c){
-  const m=document.getElementById("msg");
-  m.innerText=t;
-  m.className="msg "+c;
-  m.style.display="block";
-  setTimeout(()=>m.style.display="none",3000);
+const msg = document.getElementById("msg");
+
+// 🔥 FUNÇÃO MENSAGEM
+function mostrar(texto, cor){
+  msg.innerText = texto;
+  msg.style.color = cor;
+  setTimeout(()=> msg.innerText = "", 4000);
 }
 
-// 🔐 PROTEÇÃO ADMIN
-onAuthStateChanged(auth, async (user)=>{
-  if(!user){
-    document.body.innerHTML="🔒 Faça login";
+// 🔥 CRIAR USUÁRIO
+window.criarUser = async function(){
+
+  let email = document.getElementById("email").value;
+  let senha = document.getElementById("senha").value;
+  let saldo = parseInt(document.getElementById("saldo").value) || 0;
+  let tipo = document.getElementById("tipo").value;
+
+  if(!email || !senha){
+    mostrar("Preencha tudo!", "red");
     return;
   }
 
-  const id=user.email.replace(/\./g,"_");
-  const snap=await getDoc(doc(db,"usuarios",id));
+  try{
 
-  if(!snap.exists() || !snap.data().isAdmin){
-    document.body.innerHTML="❌ Acesso negado";
-    return;
-  }
+    // 🔐 cria auth
+    await createUserWithEmailAndPassword(auth,email,senha);
 
-  carregarPedidos();
-});
+    // 🔑 ID baseado no email
+    const id = email.replace(/\./g,"_");
 
-// 🔎 BUSCAR USUÁRIO
-window.buscarUser = async function(){
-  const email=document.getElementById("emailUser").value;
-
-  if(!email){
-    msg("Digite email","erro");
-    return;
-  }
-
-  const id=email.replace(/\./g,"_");
-  const ref=doc(db,"usuarios",id);
-  const snap=await getDoc(ref);
-
-  if(!snap.exists()){
-    msg("Usuário não encontrado","erro");
-    return;
-  }
-
-  const d=snap.data();
-
-  document.getElementById("userInfo").innerHTML=`
-    <div class="card">
-      👤 ${d.nome || "Sem nome"}<br>
-      📧 ${email}<br>
-      💰 Saldo: ${d.saldo || 0} MT<br>
-      👑 ${d.isAdmin ? "Admin" : "User"}
-
-      <input id="valorAdd" type="number" placeholder="Valor">
-
-      <button class="btn add" onclick="addSaldo('${email}')">➕ Saldo</button>
-      <button class="btn admin" onclick="setAdmin('${email}',true)">👑 Tornar Admin</button>
-      <button class="btn remove" onclick="setAdmin('${email}',false)">❌ Remover Admin</button>
-    </div>
-  `;
-}
-
-// 💰 ADICIONAR SALDO
-window.addSaldo = async function(email){
-  const valor = parseInt(document.getElementById("valorAdd").value);
-
-  if(!valor){
-    msg("Digite valor","erro");
-    return;
-  }
-
-  const id=email.replace(/\./g,"_");
-  const ref=doc(db,"usuarios",id);
-  const snap=await getDoc(ref);
-
-  const saldo=snap.data().saldo || 0;
-
-  await updateDoc(ref,{
-    saldo: saldo + valor
-  });
-
-  msg("Saldo atualizado","ok");
-  buscarUser();
-}
-
-// 👑 ADMIN
-window.setAdmin = async function(email,valor){
-  const id=email.replace(/\./g,"_");
-
-  await updateDoc(doc(db,"usuarios",id),{
-    isAdmin: valor
-  });
-
-  msg("Permissão alterada","ok");
-  buscarUser();
-}
-
-// 📦 LISTAR PEDIDOS (EMAIL REAL)
-function carregarPedidos(){
-
-  const lista=document.getElementById("listaPedidos");
-
-  onSnapshot(collection(db,"pedidos"),(snapshot)=>{
-    lista.innerHTML="<h3 style='padding:10px'>📦 Pedidos</h3>";
-
-    snapshot.forEach((docItem)=>{
-      const data=docItem.data();
-
-      lista.innerHTML+=`
-        <div class="card">
-          📧 ${data.email}<br>
-          📱 ${data.numero}<br>
-          📦 ${data.pacote}<br>
-          💰 ${data.preco} MT<br>
-          📌 ${data.status}
-
-          <button class="btn add" onclick="aprovar('${docItem.id}')">✅ Aprovar</button>
-          <button class="btn remove" onclick="rejeitar('${docItem.id}')">❌ Rejeitar</button>
-        </div>
-      `;
+    // 💾 salvar no banco
+    await setDoc(doc(db,"usuarios",id),{
+      email,
+      saldo,
+      tipo
     });
 
-  });
+    mostrar("Usuário criado!", "green");
+
+  }catch(e){
+    mostrar(e.message,"red");
+  }
 }
 
-// ✅ APROVAR
+
+// 🔥 LISTAR USUÁRIOS
+onSnapshot(collection(db,"usuarios"), (snap)=>{
+
+  const div = document.getElementById("users");
+  div.innerHTML = "";
+
+  snap.forEach(docu=>{
+    let d = docu.data();
+
+    div.innerHTML += `
+      <div class="card">
+        📧 ${d.email}<br>
+        💰 ${d.saldo} MT<br>
+        🛡️ ${d.tipo}
+      </div>
+    `;
+  });
+
+});
+
+
+// 🔥 LISTAR PEDIDOS
+onSnapshot(collection(db,"pedidos"), (snap)=>{
+
+  const div = document.getElementById("pedidos");
+  div.innerHTML = "";
+
+  snap.forEach(docu=>{
+    let d = docu.data();
+
+    div.innerHTML += `
+      <div class="card">
+        📧 ${d.email}<br>
+        📱 ${d.numero}<br>
+        📦 ${d.pacote}<br>
+        💰 ${d.preco} MT<br>
+        📌 ${d.status}<br>
+
+        <button class="btn ok" onclick="aprovar('${docu.id}')">Aprovar</button>
+        <button class="btn no" onclick="rejeitar('${docu.id}')">Rejeitar</button>
+      </div>
+    `;
+  });
+
+});
+
+
+// 🔥 APROVAR
 window.aprovar = async function(id){
   await updateDoc(doc(db,"pedidos",id),{
     status:"aprovado"
   });
-
-  msg("Pedido aprovado","ok");
 }
 
-// ❌ REJEITAR
+
+// 🔥 REJEITAR
 window.rejeitar = async function(id){
   await updateDoc(doc(db,"pedidos",id),{
     status:"rejeitado"
   });
-
-  msg("Pedido rejeitado","ok");
 }
 
 </script>
