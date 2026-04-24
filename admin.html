@@ -9,54 +9,96 @@
 body{
   margin:0;
   font-family:Arial;
-  background:#0f172a;
+  background:linear-gradient(135deg,#0f172a,#1e293b);
   color:white;
 }
 
+/* TOPO */
 .topo{
-  padding:20px;
+  padding:18px;
   text-align:center;
-  background:#020617;
   font-size:20px;
+  font-weight:bold;
+  background:#020617;
 }
 
+/* BOX */
 .box{
+  background:#1e293b;
+  margin:15px;
   padding:15px;
+  border-radius:15px;
+  box-shadow:0 5px 20px rgba(0,0,0,0.3);
 }
 
+/* INPUT PEQUENO BONITO */
 input, select{
   width:100%;
-  padding:12px;
+  padding:10px;
   margin-top:8px;
-  border-radius:10px;
+  border-radius:8px;
   border:none;
+  outline:none;
+  background:#0f172a;
+  color:white;
+  font-size:14px;
 }
 
+/* BOTÕES */
 .btn{
   width:100%;
-  padding:12px;
+  padding:10px;
   margin-top:10px;
   border:none;
-  border-radius:10px;
+  border-radius:8px;
   font-weight:bold;
   cursor:pointer;
+  font-size:14px;
 }
 
 .green{background:#22c55e;}
 .red{background:#ef4444;}
 .blue{background:#3b82f6;}
+.orange{background:#f59e0b;}
 
-.card{
-  background:#1e293b;
-  padding:15px;
-  border-radius:15px;
-  margin:10px;
+.btn:active{
+  transform:scale(0.97);
 }
 
-.msg{
+/* CARD */
+.card{
+  background:#0f172a;
+  padding:12px;
+  border-radius:12px;
+  margin-top:10px;
+  font-size:14px;
+}
+
+/* GRID BOTÕES */
+.actions{
+  display:flex;
+  gap:5px;
+  margin-top:8px;
+}
+
+.actions button{
+  flex:1;
+  padding:8px;
+  border:none;
+  border-radius:6px;
+  font-size:12px;
+}
+
+/* MSG */
+#msg{
   text-align:center;
   margin-top:10px;
   font-weight:bold;
+}
+
+/* TITULOS */
+h3{
+  margin:0 0 10px 0;
 }
 </style>
 </head>
@@ -65,30 +107,33 @@ input, select{
 
 <div class="topo">⚙️ Painel Admin</div>
 
+<!-- 🔥 CRIAR USUÁRIO -->
 <div class="box">
 
 <h3>➕ Criar Usuário</h3>
 
 <input id="email" placeholder="Email">
 <input id="senha" placeholder="Senha">
-<input id="saldo" type="number" placeholder="Saldo inicial">
+<input id="saldo" type="number" placeholder="Saldo">
 
 <select id="tipo">
   <option value="user">Usuário</option>
   <option value="admin">Admin</option>
 </select>
 
-<button class="btn green" onclick="criarUser()">Criar Usuário</button>
+<button class="btn green" onclick="criarUser()">Criar</button>
 
 <div id="msg"></div>
 
 </div>
 
+<!-- 👥 USUÁRIOS -->
 <div class="box">
 <h3>👥 Usuários</h3>
 <div id="usuarios"></div>
 </div>
 
+<!-- 📦 PEDIDOS -->
 <div class="box">
 <h3>📦 Pedidos</h3>
 <div id="pedidos"></div>
@@ -107,7 +152,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "SUA_KEY",
+  apiKey: "SUA_API_KEY",
   authDomain: "vertex-megas.firebaseapp.com",
   projectId: "vertex-megas"
 };
@@ -116,19 +161,15 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-let adminEmail = null;
-
-// 🔐 PROTEGER PAINEL
+// 🔐 PROTEÇÃO ADMIN
 onAuthStateChanged(auth, async(user)=>{
   if(!user){
     window.location.href = "index.html";
     return;
   }
 
-  adminEmail = user.email.replace(/\./g,"_");
-
-  const ref = doc(db,"usuarios",adminEmail);
-  const snap = await getDoc(ref);
+  const id = user.email.replace(/\./g,"_");
+  const snap = await getDoc(doc(db,"usuarios",id));
 
   if(!snap.exists()){
     window.location.href = "home.html";
@@ -142,48 +183,49 @@ onAuthStateChanged(auth, async(user)=>{
   }
 });
 
-// 💬 mensagem
-function mostrar(texto, cor="white"){
+// 💬 MSG
+function msg(txt,cor){
   const m = document.getElementById("msg");
-  m.innerText = texto;
+  m.innerText = txt;
   m.style.color = cor;
 }
 
-// ➕ CRIAR USUÁRIO
+// ➕ CRIAR
 window.criarUser = async()=>{
 
-  let email = document.getElementById("email").value;
-  let senha = document.getElementById("senha").value;
-  let saldo = parseInt(document.getElementById("saldo").value);
-  let tipo = document.getElementById("tipo").value;
+  let email = emailInput.value;
+  let senha = senhaInput.value;
+  let saldo = parseInt(saldoInput.value) || 0;
+  let tipo = tipoInput.value;
 
   if(!email || !senha){
-    mostrar("Preencha tudo","red");
+    msg("Preencha tudo","red");
     return;
   }
 
   try{
 
-    const cred = await createUserWithEmailAndPassword(auth,email,senha);
+    await createUserWithEmailAndPassword(auth,email,senha);
 
     const id = email.replace(/\./g,"_");
 
     await setDoc(doc(db,"usuarios",id),{
       email,
-      saldo: saldo || 0,
+      saldo,
       tipo,
-      ativo: true
+      ativo:true
     });
 
-    mostrar("Usuário criado!","lightgreen");
+    msg("Usuário criado!","lightgreen");
 
   }catch(e){
-    mostrar("Erro: "+e.message,"red");
+    msg("Erro: "+e.message,"red");
   }
 }
 
-// 👥 LISTAR USUÁRIOS
+// 👥 LISTAR USERS
 onSnapshot(collection(db,"usuarios"), (snap)=>{
+
   let html = "";
 
   snap.forEach(docu=>{
@@ -196,34 +238,37 @@ onSnapshot(collection(db,"usuarios"), (snap)=>{
       👤 ${d.tipo}<br>
       🔒 ${d.ativo ? "Ativo" : "Bloqueado"}
 
-      <button class="btn blue" onclick="toggle('${docu.id}', ${d.ativo})">
-        ${d.ativo ? "Desativar" : "Ativar"}
-      </button>
+      <div class="actions">
+        <button class="blue" onclick="toggle('${docu.id}',${d.ativo})">
+          ${d.ativo ? "Desativar" : "Ativar"}
+        </button>
 
-      <button class="btn red" onclick="apagar('${docu.id}')">
-        Apagar
-      </button>
+        <button class="red" onclick="apagar('${docu.id}')">
+          Apagar
+        </button>
+      </div>
     </div>
     `;
   });
 
-  document.getElementById("usuarios").innerHTML = html;
+  usuarios.innerHTML = html;
 });
 
 // 🔄 ATIVAR/DESATIVAR
-window.toggle = async(id, ativo)=>{
+window.toggle = async(id,ativo)=>{
   await updateDoc(doc(db,"usuarios",id),{
-    ativo: !ativo
+    ativo:!ativo
   });
 }
 
-// ❌ APAGAR
+// 🗑 APAGAR
 window.apagar = async(id)=>{
   await deleteDoc(doc(db,"usuarios",id));
 }
 
 // 📦 PEDIDOS
 onSnapshot(collection(db,"pedidos"), (snap)=>{
+
   let html = "";
 
   snap.forEach(docu=>{
@@ -237,28 +282,25 @@ onSnapshot(collection(db,"pedidos"), (snap)=>{
       💰 ${d.preco} MT<br>
       📌 ${d.status}
 
-      <button class="btn green" onclick="aprovar('${docu.id}')">
-        Aprovar
-      </button>
-
-      <button class="btn red" onclick="rejeitar('${docu.id}')">
-        Rejeitar
-      </button>
+      <div class="actions">
+        <button class="green" onclick="aprovar('${docu.id}')">✔</button>
+        <button class="red" onclick="rejeitar('${docu.id}')">✖</button>
+      </div>
     </div>
     `;
   });
 
-  document.getElementById("pedidos").innerHTML = html;
+  pedidos.innerHTML = html;
 });
 
-// ✔️ APROVAR
+// ✔ APROVAR
 window.aprovar = async(id)=>{
   await updateDoc(doc(db,"pedidos",id),{
     status:"aprovado"
   });
 }
 
-// ❌ REJEITAR
+// ✖ REJEITAR
 window.rejeitar = async(id)=>{
   await updateDoc(doc(db,"pedidos",id),{
     status:"rejeitado"
