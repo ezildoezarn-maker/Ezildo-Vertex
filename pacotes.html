@@ -3,185 +3,119 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comprar Megas</title>
+<title>Pacotes</title>
 
 <style>
-body {
-  margin: 0;
-  font-family: Arial;
-  background: linear-gradient(135deg, #0f172a, #1e3a8a);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
+body{
+  margin:0;
+  font-family:Arial;
+  background: linear-gradient(135deg,#0f172a,#1e3a8a);
+  color:white;
 }
 
-/* CAIXA */
-.box {
-  width: 90%;
-  max-width: 350px;
-  background: white;
-  padding: 20px;
-  border-radius: 20px;
-  text-align: center;
+/* TOPO */
+.topo{
+  padding:20px;
+  text-align:center;
+  font-size:20px;
 }
 
-/* INPUT */
-input, select {
-  width: 100%;
-  padding: 12px;
-  margin-top: 10px;
-  border-radius: 10px;
-  border: 1px solid #ccc;
+/* GRID */
+.container{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:15px;
+  padding:15px;
+}
+
+/* CARD */
+.card{
+  background:white;
+  color:black;
+  border-radius:15px;
+  padding:15px;
+  text-align:center;
+  box-shadow:0 5px 15px rgba(0,0,0,0.2);
+}
+
+.card h3{
+  margin:10px 0;
+}
+
+.preco{
+  font-size:18px;
+  font-weight:bold;
+  margin:10px 0;
 }
 
 /* BOTÃO */
-button {
-  width: 100%;
-  padding: 13px;
-  margin-top: 15px;
-  border: none;
-  border-radius: 12px;
-  background: linear-gradient(45deg, #36d1dc, #5b86e5);
-  color: white;
-  font-weight: bold;
+.btn{
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:10px;
+  background: linear-gradient(45deg,#36d1dc,#5b86e5);
+  color:white;
+  font-weight:bold;
 }
 
-/* MENSAGEM */
-#msg {
-  margin-top: 10px;
-  font-size: 14px;
-  font-weight: bold;
+/* VOLTAR */
+.voltar{
+  margin:15px;
+  background:#eee;
+  color:black;
+}
+
+/* RESPONSIVO */
+@media(max-width:350px){
+  .container{
+    grid-template-columns:1fr;
+  }
 }
 </style>
 </head>
 
 <body>
 
-<div class="box">
-  <h2>📶 Comprar Megas</h2>
+<div class="topo">📦 Escolher Pacote</div>
 
-  <select id="pacote">
-    <option value="">Escolher pacote</option>
-    <option value="100MB">100MB - 10MT</option>
-    <option value="500MB">500MB - 40MT</option>
-    <option value="1GB">1GB - 70MT</option>
-  </select>
+<div class="container">
 
-  <input type="number" id="numero" placeholder="Número (84 ou 85...)">
+  <div class="card">
+    <h3>📶 100MB</h3>
+    <div class="preco">10 MT</div>
+    <button class="btn" onclick="comprar('100MB')">Comprar</button>
+  </div>
 
-  <button onclick="enviar()">Enviar Pedido</button>
+  <div class="card">
+    <h3>📶 500MB</h3>
+    <div class="preco">40 MT</div>
+    <button class="btn" onclick="comprar('500MB')">Comprar</button>
+  </div>
 
-  <div id="msg"></div>
+  <div class="card">
+    <h3>📶 1GB</h3>
+    <div class="preco">70 MT</div>
+    <button class="btn" onclick="comprar('1GB')">Comprar</button>
+  </div>
 
-  <button onclick="voltar()" style="background:#eee;color:black;">⬅ Voltar</button>
 </div>
 
-<script type="module">
+<button class="btn voltar" onclick="voltar()">⬅ Voltar</button>
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, addDoc, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+<script>
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDYynjujS00ewRLDRKUJ2sVNv6FJFl5G9s",
-  authDomain: "vertex-megas.firebaseapp.com",
-  projectId: "vertex-megas"
-};
+// 👉 enviar pacote escolhido
+function comprar(pacote){
+  // guardar pacote
+  localStorage.setItem("pacoteEscolhido", pacote);
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-let userEmail = null;
-
-// 🔐 GARANTIR LOGIN
-onAuthStateChanged(auth, (user)=>{
-  if(!user){
-    window.location.href = "index.html";
-    return;
-  }
-  userEmail = user.email;
-});
-
-// 💰 PREÇOS
-function getPreco(pacote){
-  if(pacote === "100MB") return 10;
-  if(pacote === "500MB") return 40;
-  if(pacote === "1GB") return 70;
-  return 0;
+  // ir para página compra
+  window.location.href = "comprar.html";
 }
 
-// 🚀 ENVIAR PEDIDO
-window.enviar = async function() {
-
-  let num = document.getElementById("numero").value;
-  let pacote = document.getElementById("pacote").value;
-  let msg = document.getElementById("msg");
-
-  if (!pacote || !num) {
-    msg.innerText = "⚠️ Preencha tudo!";
-    msg.style.color = "red";
-    return;
-  }
-
-  if (num.length !== 9 || !(num.startsWith("84") || num.startsWith("85"))) {
-    msg.innerText = "❌ Número inválido!";
-    msg.style.color = "red";
-    return;
-  }
-
-  try {
-
-    const emailId = userEmail.replace(/\./g, "_");
-    const refUser = doc(db, "usuarios", emailId);
-    const snap = await getDoc(refUser);
-
-    if(!snap.exists()){
-      msg.innerText = "Erro usuário!";
-      msg.style.color = "red";
-      return;
-    }
-
-    let saldo = snap.data().saldo || 0;
-    let preco = getPreco(pacote);
-
-    // ❌ saldo insuficiente
-    if(saldo < preco){
-      msg.innerText = "💸 Saldo insuficiente!";
-      msg.style.color = "red";
-      return;
-    }
-
-    // ➖ descontar saldo
-    await updateDoc(refUser,{
-      saldo: saldo - preco
-    });
-
-    // 📦 criar pedido
-    await addDoc(collection(db, "pedidos"), {
-      email: userEmail,
-      numero: num,
-      pacote: pacote,
-      preco: preco,
-      status: "pendente",
-      data: new Date().toISOString()
-    });
-
-    msg.innerText = "✅ Pedido enviado!";
-    msg.style.color = "green";
-
-    document.getElementById("numero").value = "";
-    document.getElementById("pacote").value = "";
-
-  } catch (e) {
-    msg.innerText = "Erro ao enviar!";
-    msg.style.color = "red";
-    console.error(e);
-  }
-}
-
-window.voltar = function() {
+// voltar
+function voltar(){
   window.location.href = "home.html";
 }
 
