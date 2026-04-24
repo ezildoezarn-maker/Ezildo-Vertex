@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Pro</title>
+<title>Admin</title>
 
 <style>
 body{
@@ -18,35 +18,23 @@ body{
   padding:20px;
   text-align:center;
   background:#020617;
-  font-size:20px;
 }
 
-/* loading */
-.loading{
-  height:100vh;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  font-size:18px;
-}
-
-/* mensagem */
+/* msg */
 .msg{
   position:fixed;
   top:10px;
   left:50%;
   transform:translateX(-50%);
-  padding:12px 20px;
+  padding:10px 20px;
   border-radius:10px;
   display:none;
-  font-weight:bold;
 }
-
-.sucesso{background:#22c55e;}
+.ok{background:#22c55e;}
 .erro{background:#ef4444;}
 
 /* box */
-.box{ padding:15px; }
+.box{padding:15px;}
 
 input{
   width:100%;
@@ -63,59 +51,44 @@ input{
   border:none;
   border-radius:10px;
   font-weight:bold;
-  cursor:pointer;
 }
 
 .add{background:#22c55e;}
 .admin{background:#6366f1;}
 .remove{background:#ef4444;}
 
-.userBox{
-  background:#1e293b;
-  margin-top:10px;
-  padding:15px;
-  border-radius:12px;
-}
-
-.lista{ padding:15px; }
-
+/* lista */
 .card{
   background:#1e293b;
+  margin:10px;
   padding:12px;
   border-radius:10px;
-  margin-bottom:10px;
 }
 </style>
 </head>
 
 <body>
 
-<div id="loading" class="loading">⏳ Carregando...</div>
+<div class="topo">⚙️ Painel Admin</div>
+<div id="msg" class="msg"></div>
 
-<div id="app" style="display:none;">
+<!-- 🔎 BUSCAR -->
+<div class="box">
+  <h3>🔎 Buscar Usuário</h3>
+  <input id="emailUser" placeholder="Email">
+  <button class="btn add" onclick="buscarUser()">Buscar</button>
 
-  <div class="topo">⚙️ Admin Pro</div>
-  <div id="msg" class="msg"></div>
-
-  <!-- 🔎 BUSCAR -->
-  <div class="box">
-    <h3>🔎 Buscar Usuário</h3>
-    <input id="emailUser" placeholder="Email">
-    <button class="btn add" onclick="buscarUser()">Buscar</button>
-
-    <div id="userInfo" class="userBox" style="display:none;"></div>
-  </div>
-
-  <!-- 📋 LISTA -->
-  <div class="lista" id="listaUsers"></div>
-
+  <div id="userInfo"></div>
 </div>
+
+<!-- 📦 PEDIDOS -->
+<div id="listaPedidos"></div>
 
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, getDocs, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDYynjujS00ewRLDRKUJ2sVNv6FJFl5G9s",
@@ -127,7 +100,6 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// 🔔 mensagem
 function msg(t,c){
   const m=document.getElementById("msg");
   m.innerText=t;
@@ -136,40 +108,25 @@ function msg(t,c){
   setTimeout(()=>m.style.display="none",3000);
 }
 
-// 🔐 VERIFICA LOGIN + ADMIN (BLINDADO)
+// 🔐 PROTEÇÃO ADMIN
 onAuthStateChanged(auth, async (user)=>{
-
-  // 🔥 espera sempre terminar carregamento
-  if(user === undefined) return;
-
   if(!user){
-    document.getElementById("loading").innerHTML="🔒 Faça login primeiro";
+    document.body.innerHTML="🔒 Faça login";
     return;
   }
 
-  try{
-    const id=user.email.replace(/\./g,"_");
-    const snap=await getDoc(doc(db,"usuarios",id));
+  const id=user.email.replace(/\./g,"_");
+  const snap=await getDoc(doc(db,"usuarios",id));
 
-    if(!snap.exists() || !snap.data().isAdmin){
-      document.getElementById("loading").innerHTML="❌ Acesso negado";
-      return;
-    }
-
-    // ✅ liberar painel
-    document.getElementById("loading").style.display="none";
-    document.getElementById("app").style.display="block";
-
-    carregarLista();
-
-  }catch(e){
-    document.getElementById("loading").innerHTML="Erro ao carregar";
-    console.error(e);
+  if(!snap.exists() || !snap.data().isAdmin){
+    document.body.innerHTML="❌ Acesso negado";
+    return;
   }
 
+  carregarPedidos();
 });
 
-// 🔎 BUSCAR
+// 🔎 BUSCAR USUÁRIO
 window.buscarUser = async function(){
   const email=document.getElementById("emailUser").value;
 
@@ -189,24 +146,30 @@ window.buscarUser = async function(){
 
   const d=snap.data();
 
-  document.getElementById("userInfo").style.display="block";
   document.getElementById("userInfo").innerHTML=`
-    👤 ${d.nome || "Sem nome"} <br>
-    📧 ${email} <br>
-    💰 Saldo: ${d.saldo || 0} MT <br>
-    👑 Admin: ${d.isAdmin ? "Sim" : "Não"}
+    <div class="card">
+      👤 ${d.nome || "Sem nome"}<br>
+      📧 ${email}<br>
+      💰 Saldo: ${d.saldo || 0} MT<br>
+      👑 ${d.isAdmin ? "Admin" : "User"}
 
-    <button class="btn add" onclick="addSaldo('${email}')">➕ Saldo</button>
-    <button class="btn admin" onclick="setAdmin('${email}',true)">👑 Tornar Admin</button>
-    <button class="btn remove" onclick="setAdmin('${email}',false)">❌ Remover Admin</button>
+      <input id="valorAdd" type="number" placeholder="Valor">
+
+      <button class="btn add" onclick="addSaldo('${email}')">➕ Saldo</button>
+      <button class="btn admin" onclick="setAdmin('${email}',true)">👑 Tornar Admin</button>
+      <button class="btn remove" onclick="setAdmin('${email}',false)">❌ Remover Admin</button>
+    </div>
   `;
 }
 
-// 💰 SALDO
+// 💰 ADICIONAR SALDO
 window.addSaldo = async function(email){
-  const valor = prompt("Valor:");
+  const valor = parseInt(document.getElementById("valorAdd").value);
 
-  if(!valor) return;
+  if(!valor){
+    msg("Digite valor","erro");
+    return;
+  }
 
   const id=email.replace(/\./g,"_");
   const ref=doc(db,"usuarios",id);
@@ -214,9 +177,11 @@ window.addSaldo = async function(email){
 
   const saldo=snap.data().saldo || 0;
 
-  await updateDoc(ref,{saldo: saldo + parseInt(valor)});
+  await updateDoc(ref,{
+    saldo: saldo + valor
+  });
 
-  msg("Saldo atualizado","sucesso");
+  msg("Saldo atualizado","ok");
   buscarUser();
 }
 
@@ -228,28 +193,54 @@ window.setAdmin = async function(email,valor){
     isAdmin: valor
   });
 
-  msg("Permissão atualizada","sucesso");
+  msg("Permissão alterada","ok");
   buscarUser();
 }
 
-// 📋 LISTA
-async function carregarLista(){
-  const snap=await getDocs(collection(db,"usuarios"));
+// 📦 LISTAR PEDIDOS (EMAIL REAL)
+function carregarPedidos(){
 
-  const lista=document.getElementById("listaUsers");
-  lista.innerHTML="<h3>👥 Usuários</h3>";
+  const lista=document.getElementById("listaPedidos");
 
-  snap.forEach(docItem=>{
-    const d=docItem.data();
+  onSnapshot(collection(db,"pedidos"),(snapshot)=>{
+    lista.innerHTML="<h3 style='padding:10px'>📦 Pedidos</h3>";
 
-    lista.innerHTML+=`
-      <div class="card">
-        ${d.email}<br>
-        💰 ${d.saldo || 0} MT<br>
-        👑 ${d.isAdmin ? "Admin" : "User"}
-      </div>
-    `;
+    snapshot.forEach((docItem)=>{
+      const data=docItem.data();
+
+      lista.innerHTML+=`
+        <div class="card">
+          📧 ${data.email}<br>
+          📱 ${data.numero}<br>
+          📦 ${data.pacote}<br>
+          💰 ${data.preco} MT<br>
+          📌 ${data.status}
+
+          <button class="btn add" onclick="aprovar('${docItem.id}')">✅ Aprovar</button>
+          <button class="btn remove" onclick="rejeitar('${docItem.id}')">❌ Rejeitar</button>
+        </div>
+      `;
+    });
+
   });
+}
+
+// ✅ APROVAR
+window.aprovar = async function(id){
+  await updateDoc(doc(db,"pedidos",id),{
+    status:"aprovado"
+  });
+
+  msg("Pedido aprovado","ok");
+}
+
+// ❌ REJEITAR
+window.rejeitar = async function(id){
+  await updateDoc(doc(db,"pedidos",id),{
+    status:"rejeitado"
+  });
+
+  msg("Pedido rejeitado","ok");
 }
 
 </script>
