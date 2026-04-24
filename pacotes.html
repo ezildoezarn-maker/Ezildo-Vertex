@@ -21,19 +21,27 @@ body{
   border-bottom-right-radius:20px;
 }
 
-/* GRID (AQUI ESTÁ A MÁGICA) */
+.topo h2{margin:0;}
+.topo p{margin:5px 0 0;}
+
+/* TITULO */
+.titulo{
+  padding:10px 15px;
+  font-weight:bold;
+  color:#444;
+}
+
+/* GRID */
 .container{
   display:grid;
-  grid-template-columns: 1fr 1fr; /* 2 lado a lado */
+  grid-template-columns: 1fr 1fr;
   gap:12px;
   padding:12px;
 }
 
-/* RESPONSIVO (telefones pequenos) */
-@media (max-width:350px){
-  .container{
-    grid-template-columns: 1fr;
-  }
+/* ESSENCIAL */
+#lista{
+  display: contents;
 }
 
 /* CARD */
@@ -61,18 +69,31 @@ button{
   padding:10px;
   border:none;
   border-radius:10px;
-  background:#22c55e;
+  background: linear-gradient(45deg,#22c55e,#16a34a);
   color:white;
   font-weight:bold;
   font-size:13px;
+  cursor:pointer;
 }
 
+button:active{
+  transform:scale(0.96);
+}
+
+/* VOLTAR */
 .voltar{
-  grid-column: span 2; /* ocupa linha toda */
+  grid-column: span 2;
   background:#ddd;
   color:black;
 }
-  </style>
+
+/* RESPONSIVO */
+@media (max-width:350px){
+  .container{
+    grid-template-columns:1fr;
+  }
+}
+</style>
 </head>
 
 <body>
@@ -86,6 +107,7 @@ button{
 
 <div class="container">
   <div id="lista"></div>
+
   <button class="voltar" onclick="voltar()">⬅ Voltar</button>
 </div>
 
@@ -112,12 +134,11 @@ onAuthStateChanged(auth,(user)=>{
   }
 });
 
-// 📦 PACOTES (TUA TABELA)
+// 📦 PACOTES
 const pacotes = [
   {mb:"370MB", preco:10},
   {mb:"512MB", preco:14},
   {mb:"750MB", preco:20},
-
   {mb:"1GB", preco:26},
   {mb:"1.3GB", preco:36},
   {mb:"1.5GB", preco:45},
@@ -146,7 +167,7 @@ pacotes.forEach(p=>{
   `;
 });
 
-// 🚀 IR COMPRA
+// 🚀 IR PRA COMPRA
 window.comprar = function(pacote, preco){
   window.location.href = `comprar.html?pacote=${pacote}&preco=${preco}`;
 }
