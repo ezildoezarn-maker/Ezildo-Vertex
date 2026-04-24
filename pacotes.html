@@ -3,119 +3,165 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pacotes</title>
+<title>Venda de Megas</title>
 
 <style>
 body{
   margin:0;
   font-family:Arial;
-  background: linear-gradient(135deg,#0f172a,#1e3a8a);
-  color:white;
+  background:#f2f2f2;
 }
 
 /* TOPO */
 .topo{
+  background: linear-gradient(135deg,#ff5f6d,#ff9966);
+  color:white;
   padding:20px;
-  text-align:center;
-  font-size:20px;
+  border-bottom-left-radius:20px;
+  border-bottom-right-radius:20px;
 }
 
-/* GRID */
+.topo h2{margin:0;}
+.topo p{margin:5px 0 0;}
+
+/* CONTAINER */
 .container{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:15px;
   padding:15px;
+}
+
+/* TITULO SECÇÃO */
+.titulo{
+  font-weight:bold;
+  margin:15px 5px;
+  color:#444;
 }
 
 /* CARD */
 .card{
   background:white;
-  color:black;
-  border-radius:15px;
   padding:15px;
-  text-align:center;
-  box-shadow:0 5px 15px rgba(0,0,0,0.2);
+  border-radius:15px;
+  margin-bottom:12px;
+  box-shadow:0 5px 15px rgba(0,0,0,0.1);
 }
 
-.card h3{
-  margin:10px 0;
+.nome{
+  font-size:17px;
+  font-weight:bold;
 }
 
 .preco{
-  font-size:18px;
-  font-weight:bold;
-  margin:10px 0;
+  color:#666;
+  margin-top:4px;
 }
 
 /* BOTÃO */
-.btn{
+button{
   width:100%;
   padding:12px;
+  margin-top:10px;
   border:none;
   border-radius:10px;
-  background: linear-gradient(45deg,#36d1dc,#5b86e5);
+  background:#22c55e;
   color:white;
   font-weight:bold;
+  cursor:pointer;
+}
+
+button:active{
+  transform:scale(0.96);
 }
 
 /* VOLTAR */
 .voltar{
-  margin:15px;
-  background:#eee;
+  background:#ddd;
   color:black;
-}
-
-/* RESPONSIVO */
-@media(max-width:350px){
-  .container{
-    grid-template-columns:1fr;
-  }
 }
 </style>
 </head>
 
 <body>
 
-<div class="topo">📦 Escolher Pacote</div>
+<div class="topo">
+  <h2>📡 Megas Vodacom</h2>
+  <p id="user">Olá...</p>
+</div>
 
 <div class="container">
 
-  <div class="card">
-    <h3>📶 100MB</h3>
-    <div class="preco">10 MT</div>
-    <button class="btn" onclick="comprar('100MB')">Comprar</button>
-  </div>
+  <div class="titulo">📅 DIÁRIOS</div>
 
-  <div class="card">
-    <h3>📶 500MB</h3>
-    <div class="preco">40 MT</div>
-    <button class="btn" onclick="comprar('500MB')">Comprar</button>
-  </div>
+  <!-- LISTA AUTOMÁTICA -->
+  <div id="lista"></div>
 
-  <div class="card">
-    <h3>📶 1GB</h3>
-    <div class="preco">70 MT</div>
-    <button class="btn" onclick="comprar('1GB')">Comprar</button>
-  </div>
+  <button class="voltar" onclick="voltar()">⬅ Voltar</button>
 
 </div>
 
-<button class="btn voltar" onclick="voltar()">⬅ Voltar</button>
+<script type="module">
 
-<script>
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-// 👉 enviar pacote escolhido
-function comprar(pacote){
-  // guardar pacote
-  localStorage.setItem("pacoteEscolhido", pacote);
+const firebaseConfig = {
+  apiKey: "AIzaSyDYynjujS00ewRLDRKUJ2sVNv6FJFl5G9s",
+  authDomain: "vertex-megas.firebaseapp.com",
+  projectId: "vertex-megas"
+};
 
-  // ir para página compra
-  window.location.href = "comprar.html";
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+// 🔐 USER
+onAuthStateChanged(auth,(user)=>{
+  if(user){
+    document.getElementById("user").innerText = "Olá, " + user.email;
+  }else{
+    window.location.href = "index.html";
+  }
+});
+
+// 📦 PACOTES (TUA TABELA)
+const pacotes = [
+  {mb:"370MB", preco:10},
+  {mb:"512MB", preco:14},
+  {mb:"750MB", preco:20},
+
+  {mb:"1GB", preco:26},
+  {mb:"1.3GB", preco:36},
+  {mb:"1.5GB", preco:45},
+  {mb:"2GB", preco:52},
+  {mb:"2.3GB", preco:65},
+  {mb:"3GB", preco:78},
+  {mb:"3.5GB", preco:100},
+  {mb:"4GB", preco:104},
+  {mb:"5GB", preco:130},
+  {mb:"6GB", preco:156},
+  {mb:"7GB", preco:182}
+];
+
+// 🔥 RENDER
+const lista = document.getElementById("lista");
+
+pacotes.forEach(p=>{
+  lista.innerHTML += `
+    <div class="card">
+      <div class="nome">📦 ${p.mb}</div>
+      <div class="preco">${p.preco} MT</div>
+      <button onclick="comprar('${p.mb}',${p.preco})">
+        Comprar
+      </button>
+    </div>
+  `;
+});
+
+// 🚀 IR COMPRA
+window.comprar = function(pacote, preco){
+  window.location.href = `comprar.html?pacote=${pacote}&preco=${preco}`;
 }
 
-// voltar
-function voltar(){
+// 🔙 VOLTAR
+window.voltar = function(){
   window.location.href = "home.html";
 }
 
