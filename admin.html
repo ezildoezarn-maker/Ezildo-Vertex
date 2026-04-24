@@ -3,137 +3,123 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Painel Admin</title>
+<title>Painel Admin PRO</title>
 
 <style>
 body{
   margin:0;
   font-family:Arial;
-  background:linear-gradient(135deg,#0f172a,#1e293b);
+  background: linear-gradient(135deg,#0f172a,#1e3a8a);
   color:white;
 }
 
 /* TOPO */
 .topo{
-  padding:18px;
+  padding:20px;
   text-align:center;
   font-size:20px;
   font-weight:bold;
   background:#020617;
 }
 
-/* BOX */
+/* CAIXA */
 .box{
   background:#1e293b;
   margin:15px;
   padding:15px;
   border-radius:15px;
-  box-shadow:0 5px 20px rgba(0,0,0,0.3);
 }
 
-/* INPUT PEQUENO BONITO */
+/* INPUT */
 input, select{
   width:100%;
-  padding:10px;
+  padding:12px;
   margin-top:8px;
-  border-radius:8px;
+  border-radius:10px;
   border:none;
-  outline:none;
-  background:#0f172a;
-  color:white;
-  font-size:14px;
 }
 
 /* BOTÕES */
-.btn{
+button{
   width:100%;
-  padding:10px;
+  padding:12px;
   margin-top:10px;
   border:none;
-  border-radius:8px;
+  border-radius:10px;
   font-weight:bold;
   cursor:pointer;
-  font-size:14px;
 }
 
-.green{background:#22c55e;}
-.red{background:#ef4444;}
-.blue{background:#3b82f6;}
-.orange{background:#f59e0b;}
+.criar{background:#22c55e;color:white;}
+.add{background:#3b82f6;color:white;}
 
-.btn:active{
-  transform:scale(0.97);
-}
-
-/* CARD */
+/* LISTA */
 .card{
-  background:#0f172a;
-  padding:12px;
-  border-radius:12px;
+  background:#020617;
+  padding:15px;
+  border-radius:15px;
   margin-top:10px;
+}
+
+.linha{
   font-size:14px;
+  margin:3px 0;
 }
 
-/* GRID BOTÕES */
-.actions{
-  display:flex;
-  gap:5px;
-  margin-top:8px;
-}
-
+/* BOTÕES CARD */
 .actions button{
-  flex:1;
+  width:auto;
   padding:8px;
-  border:none;
-  border-radius:6px;
-  font-size:12px;
+  margin-top:5px;
+  margin-right:5px;
+  border-radius:8px;
 }
+
+.green{background:#22c55e;color:white;}
+.red{background:#ef4444;color:white;}
+.yellow{background:#eab308;color:black;}
+.blue{background:#3b82f6;color:white;}
 
 /* MSG */
 #msg{
   text-align:center;
-  margin-top:10px;
+  margin:10px;
   font-weight:bold;
-}
-
-/* TITULOS */
-h3{
-  margin:0 0 10px 0;
 }
 </style>
 </head>
 
 <body>
 
-<div class="topo">⚙️ Painel Admin</div>
+<div class="topo">⚙️ Painel Admin PRO</div>
 
-<!-- 🔥 CRIAR USUÁRIO -->
+<div id="msg"></div>
+
+<!-- CRIAR USUÁRIO -->
 <div class="box">
-
 <h3>➕ Criar Usuário</h3>
 
 <input id="email" placeholder="Email">
 <input id="senha" placeholder="Senha">
-<input id="saldo" type="number" placeholder="Saldo">
 
 <select id="tipo">
-  <option value="user">Usuário</option>
+  <option value="user">User</option>
   <option value="admin">Admin</option>
+  <option value="admin2">Admin Nível 2</option>
 </select>
 
-<button class="btn green" onclick="criarUser()">Criar</button>
+<input id="saldo" type="number" placeholder="Saldo inicial">
 
-<div id="msg"></div>
-
+<button class="criar" onclick="criar()">Criar Usuário</button>
 </div>
 
-<!-- 👥 USUÁRIOS -->
+<!-- USUÁRIOS -->
 <div class="box">
 <h3>👥 Usuários</h3>
 <div id="usuarios"></div>
 </div>
 
-<!-- 📦 PEDIDOS -->
+<!-- PEDIDOS -->
 <div class="box">
 <h3>📦 Pedidos</h3>
 <div id="pedidos"></div>
@@ -143,12 +129,21 @@ h3{
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getAuth, onAuthStateChanged, createUserWithEmailAndPassword
+  getAuth,
+  onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
-  getFirestore, doc, setDoc, getDoc,
-  collection, onSnapshot, updateDoc, deleteDoc
+  getFirestore,
+  doc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  getDoc,
+  collection,
+  onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -161,151 +156,133 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// 🔐 PROTEÇÃO ADMIN
+const msg = document.getElementById("msg");
+
+// 🔐 PROTEGER ADMIN
 onAuthStateChanged(auth, async(user)=>{
   if(!user){
-    window.location.href = "index.html";
+    window.location.href="index.html";
     return;
   }
 
-  const id = user.email.replace(/\./g,"_");
-  const snap = await getDoc(doc(db,"usuarios",id));
+  const emailId = user.email.replace(/\./g,"_");
+  const ref = doc(db,"usuarios",emailId);
+  const snap = await getDoc(ref);
 
-  if(!snap.exists()){
-    window.location.href = "home.html";
-    return;
-  }
-
-  const data = snap.data();
-
-  if(data.tipo !== "admin" || data.ativo === false){
-    window.location.href = "home.html";
+  if(!snap.exists() || (snap.data().tipo !== "admin" && snap.data().tipo !== "admin2")){
+    msg.innerText = "❌ Acesso negado";
+    setTimeout(()=>window.location.href="home.html",2000);
   }
 });
 
-// 💬 MSG
-function msg(txt,cor){
-  const m = document.getElementById("msg");
-  m.innerText = txt;
-  m.style.color = cor;
-}
+// 🔥 CRIAR USUÁRIO SEM SAIR
+window.criar = async function(){
 
-// ➕ CRIAR
-window.criarUser = async()=>{
-
-  let email = emailInput.value;
-  let senha = senhaInput.value;
-  let saldo = parseInt(saldoInput.value) || 0;
-  let tipo = tipoInput.value;
-
-  if(!email || !senha){
-    msg("Preencha tudo","red");
-    return;
-  }
+  const email = document.getElementById("email").value;
+  const senha = document.getElementById("senha").value;
+  const tipo = document.getElementById("tipo").value;
+  const saldo = parseInt(document.getElementById("saldo").value) || 0;
 
   try{
 
-    await createUserWithEmailAndPassword(auth,email,senha);
+    const tempApp = initializeApp(firebaseConfig,"temp");
+    const tempAuth = getAuth(tempApp);
 
-    const id = email.replace(/\./g,"_");
+    await createUserWithEmailAndPassword(tempAuth,email,senha);
 
-    await setDoc(doc(db,"usuarios",id),{
+    const emailId = email.replace(/\./g,"_");
+
+    await setDoc(doc(db,"usuarios",emailId),{
       email,
       saldo,
       tipo,
       ativo:true
     });
 
-    msg("Usuário criado!","lightgreen");
+    msg.innerText="✅ Usuário criado!";
+    msg.style.color="lightgreen";
+
+    await tempAuth.signOut();
 
   }catch(e){
-    msg("Erro: "+e.message,"red");
+    msg.innerText="❌ "+e.message;
+    msg.style.color="red";
   }
 }
 
-// 👥 LISTAR USERS
-onSnapshot(collection(db,"usuarios"), (snap)=>{
-
-  let html = "";
+// 🔥 LISTAR USUÁRIOS
+onSnapshot(collection(db,"usuarios"),(snap)=>{
+  const div=document.getElementById("usuarios");
+  div.innerHTML="";
 
   snap.forEach(docu=>{
-    let d = docu.data();
+    const d=docu.data();
 
-    html += `
+    div.innerHTML+=`
     <div class="card">
-      📧 ${d.email}<br>
-      💰 ${d.saldo} MT<br>
-      👤 ${d.tipo}<br>
-      🔒 ${d.ativo ? "Ativo" : "Bloqueado"}
+      <div class="linha">📧 ${d.email}</div>
+      <div class="linha">💰 ${d.saldo} MT</div>
+      <div class="linha">🔑 ${d.tipo}</div>
+      <div class="linha">📌 ${d.ativo ? "Ativo":"Bloqueado"}</div>
 
       <div class="actions">
-        <button class="blue" onclick="toggle('${docu.id}',${d.ativo})">
-          ${d.ativo ? "Desativar" : "Ativar"}
-        </button>
-
-        <button class="red" onclick="apagar('${docu.id}')">
-          Apagar
-        </button>
+        <button class="green" onclick="ativar('${docu.id}')">Ativar</button>
+        <button class="yellow" onclick="desativar('${docu.id}')">Desativar</button>
+        <button class="blue" onclick="addSaldo('${docu.id}')">+Saldo</button>
+        <button class="red" onclick="apagar('${docu.id}')">Apagar</button>
       </div>
     </div>
     `;
   });
-
-  usuarios.innerHTML = html;
 });
 
-// 🔄 ATIVAR/DESATIVAR
-window.toggle = async(id,ativo)=>{
-  await updateDoc(doc(db,"usuarios",id),{
-    ativo:!ativo
+// 🔧 FUNÇÕES
+window.ativar=id=>updateDoc(doc(db,"usuarios",id),{ativo:true});
+window.desativar=id=>updateDoc(doc(db,"usuarios",id),{ativo:false});
+
+window.apagar=id=>{
+  deleteDoc(doc(db,"usuarios",id));
+};
+
+window.addSaldo=async(id)=>{
+  const valor = prompt("Valor:");
+  if(!valor) return;
+
+  const ref=doc(db,"usuarios",id);
+  const snap=await getDoc(ref);
+
+  let saldo=snap.data().saldo||0;
+
+  await updateDoc(ref,{
+    saldo: saldo + parseInt(valor)
   });
-}
+};
 
-// 🗑 APAGAR
-window.apagar = async(id)=>{
-  await deleteDoc(doc(db,"usuarios",id));
-}
-
-// 📦 PEDIDOS
-onSnapshot(collection(db,"pedidos"), (snap)=>{
-
-  let html = "";
+// 🔥 PEDIDOS
+onSnapshot(collection(db,"pedidos"),(snap)=>{
+  const div=document.getElementById("pedidos");
+  div.innerHTML="";
 
   snap.forEach(docu=>{
-    let d = docu.data();
+    const d=docu.data();
 
-    html += `
+    div.innerHTML+=`
     <div class="card">
       📧 ${d.email}<br>
       📱 ${d.numero}<br>
       📦 ${d.pacote}<br>
       💰 ${d.preco} MT<br>
-      📌 ${d.status}
+      📌 ${d.status}<br>
 
-      <div class="actions">
-        <button class="green" onclick="aprovar('${docu.id}')">✔</button>
-        <button class="red" onclick="rejeitar('${docu.id}')">✖</button>
-      </div>
+      <button class="green" onclick="aprovar('${docu.id}')">Aprovar</button>
+      <button class="red" onclick="rejeitar('${docu.id}')">Rejeitar</button>
     </div>
     `;
   });
-
-  pedidos.innerHTML = html;
 });
 
-// ✔ APROVAR
-window.aprovar = async(id)=>{
-  await updateDoc(doc(db,"pedidos",id),{
-    status:"aprovado"
-  });
-}
-
-// ✖ REJEITAR
-window.rejeitar = async(id)=>{
-  await updateDoc(doc(db,"pedidos",id),{
-    status:"rejeitado"
-  });
-}
+window.aprovar=id=>updateDoc(doc(db,"pedidos",id),{status:"aprovado"});
+window.rejeitar=id=>updateDoc(doc(db,"pedidos",id),{status:"rejeitado"});
 
 </script>
 
