@@ -21,17 +21,8 @@ body{
   border-bottom-right-radius:20px;
 }
 
-.topo h2{margin:0;}
-
-#user{
-  margin-top:5px;
-}
-
-#saldo{
-  margin-top:5px;
-  font-weight:bold;
-  font-size:15px;
-}
+#user{margin-top:5px;}
+#saldo{margin-top:5px;font-weight:bold;}
 
 /* TITULO */
 .titulo{
@@ -43,12 +34,11 @@ body{
 /* GRID */
 .container{
   display:grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns:1fr 1fr;
   gap:12px;
   padding:12px;
 }
 
-/* IMPORTANTE */
 #lista{
   display: contents;
 }
@@ -62,16 +52,8 @@ body{
   text-align:center;
 }
 
-.nome{
-  font-weight:bold;
-  font-size:15px;
-}
-
-.preco{
-  margin:5px 0;
-  color:#666;
-  font-size:13px;
-}
+.nome{font-weight:bold;}
+.preco{color:#666;margin:5px 0;}
 
 /* BOTÃO */
 button{
@@ -82,15 +64,8 @@ button{
   background: linear-gradient(45deg,#22c55e,#16a34a);
   color:white;
   font-weight:bold;
-  font-size:13px;
-  cursor:pointer;
 }
 
-button:active{
-  transform:scale(0.96);
-}
-
-/* VOLTAR */
 .voltar{
   grid-column: span 2;
   background:#ddd;
@@ -98,11 +73,35 @@ button:active{
 }
 
 /* RESPONSIVO */
-@media (max-width:350px){
-  .container{
-    grid-template-columns:1fr;
-  }
+@media(max-width:350px){
+  .container{grid-template-columns:1fr;}
 }
+
+/* 🔥 TOAST */
+#toast{
+  position:fixed;
+  bottom:80px;
+  left:50%;
+  transform:translateX(-50%) translateY(50px);
+  background:#111;
+  color:#fff;
+  padding:14px 20px;
+  border-radius:12px;
+  font-size:14px;
+  font-weight:bold;
+  opacity:0;
+  transition:0.4s;
+  z-index:9999;
+}
+
+#toast.show{
+  opacity:1;
+  transform:translateX(-50%) translateY(0);
+}
+
+.toast-sucesso{background:#22c55e;}
+.toast-erro{background:#ef4444;}
+.toast-aviso{background:#f59e0b;}
 </style>
 </head>
 
@@ -121,13 +120,16 @@ button:active{
   <button class="voltar" onclick="voltar()">⬅ Voltar</button>
 </div>
 
+<!-- 🔥 TOAST -->
+<div id="toast"></div>
+
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// 🔥 FIREBASE
+// FIREBASE
 const firebaseConfig = {
   apiKey: "AIzaSyDYynjujS00ewRLDRKUJ2sVNv6FJFl5G9s",
   authDomain: "vertex-megas.firebaseapp.com",
@@ -138,16 +140,34 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// 🔥 TOAST FUNCTION
+window.toast = function(texto, tipo="sucesso"){
+  const t = document.getElementById("toast");
+
+  t.className = "";
+  t.classList.add("show");
+
+  if(tipo==="erro") t.classList.add("toast-erro");
+  else if(tipo==="aviso") t.classList.add("toast-aviso");
+  else t.classList.add("toast-sucesso");
+
+  t.innerText = texto;
+
+  setTimeout(()=>{
+    t.classList.remove("show");
+  },3000);
+}
+
 // 🔐 USER + SALDO
 onAuthStateChanged(auth,(user)=>{
   if(user){
 
     document.getElementById("user").innerText = "Olá, " + user.email;
 
-    const emailId = user.email.replace(/\./g, "_");
-    const ref = doc(db, "usuarios", emailId);
+    const emailId = user.email.replace(/\./g,"_");
+    const ref = doc(db,"usuarios",emailId);
 
-    onSnapshot(ref, (snap)=>{
+    onSnapshot(ref,(snap)=>{
       if(snap.exists()){
         const saldo = snap.data().saldo || 0;
         document.getElementById("saldo").innerText =
@@ -156,11 +176,12 @@ onAuthStateChanged(auth,(user)=>{
     });
 
   }else{
-    window.location.href = "index.html";
+    toast("Sessão expirada","erro");
+    setTimeout(()=>window.location.href="index.html",1500);
   }
 });
 
-// 📦 PACOTES
+// PACOTES
 const pacotes = [
   {mb:"370MB", preco:10},
   {mb:"512MB", preco:14},
@@ -178,7 +199,7 @@ const pacotes = [
   {mb:"7GB", preco:182}
 ];
 
-// 🔥 RENDER
+// RENDER
 const lista = document.getElementById("lista");
 
 pacotes.forEach(p=>{
@@ -193,17 +214,20 @@ pacotes.forEach(p=>{
   `;
 });
 
-// 🚀 IR PRA COMPRA
+// COMPRAR
 window.comprar = function(pacote, preco){
-  window.location.href = `comprar.html?pacote=${pacote}&preco=${preco}`;
+  toast("Abrindo compra...");
+  setTimeout(()=>{
+    window.location.href = `comprar.html?pacote=${pacote}&preco=${preco}`;
+  },500);
 }
 
-// 🔙 VOLTAR
+// VOLTAR
 window.voltar = function(){
-  window.location.href = "home.html";
+  window.location.href="home.html";
 }
 
 </script>
 
 </body>
-</html>
+  </html>
