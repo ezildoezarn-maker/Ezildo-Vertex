@@ -21,63 +21,58 @@ body{
   border-bottom-right-radius:20px;
 }
 
-.topo h2{margin:0;}
-.topo p{margin:5px 0 0;}
-
-/* CONTAINER */
+/* GRID (AQUI ESTÁ A MÁGICA) */
 .container{
-  padding:15px;
+  display:grid;
+  grid-template-columns: 1fr 1fr; /* 2 lado a lado */
+  gap:12px;
+  padding:12px;
 }
 
-/* TITULO SECÇÃO */
-.titulo{
-  font-weight:bold;
-  margin:15px 5px;
-  color:#444;
+/* RESPONSIVO (telefones pequenos) */
+@media (max-width:350px){
+  .container{
+    grid-template-columns: 1fr;
+  }
 }
 
 /* CARD */
 .card{
   background:white;
-  padding:15px;
+  padding:12px;
   border-radius:15px;
-  margin-bottom:12px;
   box-shadow:0 5px 15px rgba(0,0,0,0.1);
+  text-align:center;
 }
 
 .nome{
-  font-size:17px;
   font-weight:bold;
+  font-size:15px;
 }
 
 .preco{
+  margin:5px 0;
   color:#666;
-  margin-top:4px;
+  font-size:13px;
 }
 
-/* BOTÃO */
 button{
   width:100%;
-  padding:12px;
-  margin-top:10px;
+  padding:10px;
   border:none;
   border-radius:10px;
   background:#22c55e;
   color:white;
   font-weight:bold;
-  cursor:pointer;
+  font-size:13px;
 }
 
-button:active{
-  transform:scale(0.96);
-}
-
-/* VOLTAR */
 .voltar{
+  grid-column: span 2; /* ocupa linha toda */
   background:#ddd;
   color:black;
 }
-</style>
+  </style>
 </head>
 
 <body>
