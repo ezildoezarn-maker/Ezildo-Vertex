@@ -22,7 +22,16 @@ body{
 }
 
 .topo h2{margin:0;}
-.topo p{margin:5px 0 0;}
+
+#user{
+  margin-top:5px;
+}
+
+#saldo{
+  margin-top:5px;
+  font-weight:bold;
+  font-size:15px;
+}
 
 /* TITULO */
 .titulo{
@@ -39,7 +48,7 @@ body{
   padding:12px;
 }
 
-/* ESSENCIAL */
+/* IMPORTANTE */
 #lista{
   display: contents;
 }
@@ -64,6 +73,7 @@ body{
   font-size:13px;
 }
 
+/* BOTÃO */
 button{
   width:100%;
   padding:10px;
@@ -101,13 +111,13 @@ button:active{
 <div class="topo">
   <h2>📡 Megas Vodacom</h2>
   <p id="user">Olá...</p>
+  <p id="saldo">💰 Saldo: 0 MT</p>
 </div>
 
 <div class="titulo">📅 DIÁRIOS</div>
 
 <div class="container">
   <div id="lista"></div>
-
   <button class="voltar" onclick="voltar()">⬅ Voltar</button>
 </div>
 
@@ -115,7 +125,9 @@ button:active{
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+// 🔥 FIREBASE
 const firebaseConfig = {
   apiKey: "AIzaSyDYynjujS00ewRLDRKUJ2sVNv6FJFl5G9s",
   authDomain: "vertex-megas.firebaseapp.com",
@@ -124,11 +136,25 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
-// 🔐 USER
+// 🔐 USER + SALDO
 onAuthStateChanged(auth,(user)=>{
   if(user){
+
     document.getElementById("user").innerText = "Olá, " + user.email;
+
+    const emailId = user.email.replace(/\./g, "_");
+    const ref = doc(db, "usuarios", emailId);
+
+    onSnapshot(ref, (snap)=>{
+      if(snap.exists()){
+        const saldo = snap.data().saldo || 0;
+        document.getElementById("saldo").innerText =
+          "💰 Saldo: " + saldo + " MT";
+      }
+    });
+
   }else{
     window.location.href = "index.html";
   }
